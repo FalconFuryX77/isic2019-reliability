@@ -1,0 +1,52 @@
+
+  Backbone: ResNet-50 | Device: cuda | Seed: 42
+  Train: 20,235 | Val: 2,573 | Test: 2,523
+  Parameters: total=23,775,432 trainable=23,775,432
+  Class weights (from train split): {'MEL': 0.7067267298698425, 'NV': 0.24497579038143158, 'BCC': 0.9588229656219482, 'AK': 3.7033309936523438, 'BKL': 1.204464316368103, 'DF': 12.83946704864502, 'VASC': 12.160456657409668, 'SCC': 5.008663177490234}
+
+==============================================================
+  PHASE 1: Frozen backbone, LR=0.001
+==============================================================
+  [phase1_frozen] epoch   1 | tr_loss 1.0976 | val_loss 1.0252 | tr_acc 0.6685 | val_acc 0.6362 | val_f1_macro 0.3178
+    * best val_macro_f1: 0.3178 at epoch 1 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase1_frozen] epoch   2 | tr_loss 0.9952 | val_loss 0.9896 | tr_acc 0.6849 | val_acc 0.6440 | val_f1_macro 0.3467
+    * best val_macro_f1: 0.3467 at epoch 2 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase1_frozen] epoch   3 | tr_loss 0.9756 | val_loss 0.9853 | tr_acc 0.6864 | val_acc 0.6494 | val_f1_macro 0.3469
+    * best val_macro_f1: 0.3469 at epoch 3 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase1_frozen] epoch   4 | tr_loss 0.9592 | val_loss 0.9907 | tr_acc 0.6913 | val_acc 0.6502 | val_f1_macro 0.3438
+  [phase1_frozen] epoch   5 | tr_loss 0.9543 | val_loss 1.0058 | tr_acc 0.6948 | val_acc 0.6518 | val_f1_macro 0.3380
+  [phase1_frozen] epoch   6 | tr_loss 0.9356 | val_loss 0.9984 | tr_acc 0.7014 | val_acc 0.6510 | val_f1_macro 0.3339
+  [phase1_frozen] epoch   7 | tr_loss 0.9348 | val_loss 0.9878 | tr_acc 0.7064 | val_acc 0.6483 | val_f1_macro 0.3372
+  [phase1_frozen] epoch   8 | tr_loss 0.8981 | val_loss 0.9939 | tr_acc 0.7099 | val_acc 0.6615 | val_f1_macro 0.3554
+    * best val_macro_f1: 0.3554 at epoch 8 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase1_frozen] epoch   9 | tr_loss 0.8818 | val_loss 0.9735 | tr_acc 0.7176 | val_acc 0.6518 | val_f1_macro 0.3561
+    * best val_macro_f1: 0.3561 at epoch 9 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase1_frozen] epoch  10 | tr_loss 0.8692 | val_loss 0.9900 | tr_acc 0.7169 | val_acc 0.6529 | val_f1_macro 0.3596
+    * best val_macro_f1: 0.3596 at epoch 10 -> saved experiments\resnet50_e0\best_resnet50.pt
+
+==============================================================
+  PHASE 2: Unfreeze last 30%, LR=5e-05
+==============================================================
+  [phase2_finetune] epoch  11 | tr_loss 0.8489 | val_loss 0.9192 | tr_acc 0.7616 | val_acc 0.6879 | val_f1_macro 0.4008
+    * best val_macro_f1: 0.4008 at epoch 11 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase2_finetune] epoch  12 | tr_loss 0.7289 | val_loss 0.8752 | tr_acc 0.7951 | val_acc 0.7155 | val_f1_macro 0.4664
+    * best val_macro_f1: 0.4664 at epoch 12 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase2_finetune] epoch  13 | tr_loss 0.6483 | val_loss 0.8594 | tr_acc 0.8219 | val_acc 0.7287 | val_f1_macro 0.5156
+    * best val_macro_f1: 0.5156 at epoch 13 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase2_finetune] epoch  14 | tr_loss 0.5752 | val_loss 0.8613 | tr_acc 0.8418 | val_acc 0.7217 | val_f1_macro 0.5223
+    * best val_macro_f1: 0.5223 at epoch 14 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase2_finetune] epoch  15 | tr_loss 0.5332 | val_loss 0.9009 | tr_acc 0.8699 | val_acc 0.7264 | val_f1_macro 0.5378
+    * best val_macro_f1: 0.5378 at epoch 15 -> saved experiments\resnet50_e0\best_resnet50.pt
+  [phase2_finetune] epoch  16 | tr_loss 0.4797 | val_loss 0.9740 | tr_acc 0.8778 | val_acc 0.7237 | val_f1_macro 0.5152
+  [phase2_finetune] epoch  17 | tr_loss 0.4355 | val_loss 1.0192 | tr_acc 0.8976 | val_acc 0.7198 | val_f1_macro 0.5353
+  [phase2_finetune] epoch  18 | tr_loss 0.3913 | val_loss 1.1151 | tr_acc 0.9150 | val_acc 0.7097 | val_f1_macro 0.5032
+  [phase2_finetune] epoch  19 | tr_loss 0.3581 | val_loss 1.1282 | tr_acc 0.9263 | val_acc 0.7003 | val_f1_macro 0.5043
+  [phase2_finetune] epoch  20 | tr_loss 0.2735 | val_loss 1.1622 | tr_acc 0.9481 | val_acc 0.7186 | val_f1_macro 0.5304
+  [phase2_finetune] epoch  21 | tr_loss 0.2363 | val_loss 1.2888 | tr_acc 0.9566 | val_acc 0.7221 | val_f1_macro 0.5147
+    * best val_macro_f1: 0.5378 at epoch 21 -> saved experiments\resnet50_e0\best_resnet50.pt
+  Early stopping at epoch 21
+  Restored best checkpoint: experiments\resnet50_e0\best_resnet50.pt
+  Training curves saved to experiments\resnet50_e0
+
+  [OK] ResNet-50 training complete.
+  Experiment dir: experiments\resnet50_e0

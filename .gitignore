@@ -1,0 +1,9 @@
+# data and large artefacts are not versioned
+data/raw/
+data/processed/
+experiments/**/*.pt
+runs/**/*.pt
+*.npz
+.venv/
+__pycache__/
+*.pyc

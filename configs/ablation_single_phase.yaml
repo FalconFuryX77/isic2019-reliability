@@ -1,0 +1,116 @@
+# ============================================================
+# ISIC 2019 — Baseline Experiment Configuration
+# Central config for the reliability pipeline.
+# Every experiment stores a copy of its resolved config.
+# ============================================================
+
+# ── Reproducibility ──
+seed: 42
+
+# ── Data ──
+dataset:
+  raw_dir: "data/raw"              # where ISIC zips/CSVs live
+  train_gt_csv: "ISIC_2019_Training_GroundTruth.csv"
+  train_metadata_csv: "ISIC_2019_Training_Metadata.csv"
+  test_gt_csv: "ISIC_2019_Test_GroundTruth.csv"
+  test_metadata_csv: "ISIC_2019_Test_Metadata.csv"
+  train_input_dir: "ISIC_2019_Training_Input"
+  test_input_dir: "ISIC_2019_Test_Input"
+  use_internal_test_split: true    # 80/10/10 internal split (primary protocol)
+  use_official_test: false         # optionally also evaluate on official 8,238 test set
+
+split:
+  train_frac: 0.80
+  val_frac: 0.10
+  test_frac: 0.10
+  group_by: "lesion_id"            # prevent same lesion/patient leaking across splits
+  stratify: true
+  drop_unk: true                   # remove 328 UNK images (no diagnosis)
+
+# ── Image preprocessing ──
+preprocessing:
+  image_size: 224                  # can be changed to 300 etc. without rewrites
+  interpolation: "bicubic"         # PIL interpolation for resize
+  channels: 3
+
+# ── Augmentation (train only) ──
+augmentation:
+  enabled: true
+  rotation_deg: 15
+  zoom_range: 0.10
+  translation_pct: 0.05
+  brightness_jitter: 0.1
+  contrast_jitter: 0.1
+  horizontal_flip: true
+  vertical_flip: false
+
+# ── Training ──
+training:
+  batch_size: 32
+  num_workers: 2
+  optimizer: "adamw"
+  weight_decay: 0.0001
+  label_smoothing: 0.0
+  use_class_weights: true          # computed from TRAIN split only
+
+  # Phase 1: frozen backbone
+  phase1_epochs: 0
+  phase1_lr: 0.001
+  phase1_frozen: true
+
+  # Phase 2: fine-tune
+  phase2_epochs: 25
+  phase2_lr: 0.00005
+  phase2_unfreeze_fraction: 0.3    # unfreeze last 30% of backbone
+
+  early_stop_patience: 6
+  reduce_lr_patience: 3
+  reduce_lr_factor: 0.5
+  grad_clip_norm: 1.0
+  save_best_monitor: "val_macro_f1" # also records val_loss, val_acc, macro metrics
+
+# ── Model head ──
+head:
+  dense_size: 128
+  dropout: 0.5
+  use_batchnorm: true
+
+# ── Models ──
+models:
+  resnet50:
+    pretrained: true
+    freeze_backbone_phase1: true
+  efficientnet_b3:
+    pretrained: true
+    freeze_backbone_phase1: true
+
+# ── Calibration ──
+calibration:
+  temperature_bounds: [0.1, 10.0]
+  ece_bins: 15
+  reliability_bins: 10
+
+# ── Uncertainty ──
+uncertainty:
+  mc_dropout_passes: 30
+  use_temperature: true            # apply calibrated T to MC probabilities
+
+# ── Explainability ──
+explainability:
+  method: "gradcam"                # gradcam | gradcampp
+  num_examples_per_category: 3
+
+# ── Selective prediction ──
+selective:
+  threshold_grid: 100              # number of confidence thresholds to sweep
+
+# ── Output ──
+paths:
+  splits_dir: "data/splits"
+  experiments_dir: "experiments"
+  checkpoints_dir: "checkpoints"
+  results_dir: "results"
+  figures_dir: "results/figures"
+  tables_dir: "results/tables"
+  gradcam_dir: "results/gradcam"
+  logs_dir: "logs"

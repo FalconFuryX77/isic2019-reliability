@@ -1,0 +1,94 @@
+batch=repeat_batch_20261107
+job=6/12
+seed=44
+model=efficientnet_b3
+condition=efficientnet_b3_weighted
+config=runs\repeat_batch_20261107\configs\seed44_efficientnet_b3_weighted.yaml
+
+
+  Backbone: EfficientNet-B3 | Device: cuda | Seed: 44
+  Train: 20,235 | Val: 2,573 | Test: 2,523
+  Parameters: total=10,897,072 trainable=10,897,072
+  Class weights (from train split): {'MEL': 0.7067267298698425, 'NV': 0.24497579038143158, 'BCC': 0.9588229656219482, 'AK': 3.7033309936523438, 'BKL': 1.204464316368103, 'DF': 12.83946704864502, 'VASC': 12.160456657409668, 'SCC': 5.008663177490234}
+
+==============================================================
+  PHASE 1: Frozen backbone, LR=0.001
+==============================================================
+  [phase1_frozen] epoch   1 | tr_loss 1.6676 | val_loss 1.5039 | tr_acc 0.5545 | val_acc 0.5290 | val_f1_macro 0.3288
+    * best val_macro_f1: 0.3288 at epoch 1 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.3288 at epoch 1 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase1_frozen] epoch   2 | tr_loss 1.5434 | val_loss 1.4410 | tr_acc 0.5407 | val_acc 0.5052 | val_f1_macro 0.3497
+    * best val_macro_f1: 0.3497 at epoch 2 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.3497 at epoch 2 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase1_frozen] epoch   3 | tr_loss 1.4725 | val_loss 1.4474 | tr_acc 0.5675 | val_acc 0.5344 | val_f1_macro 0.3628
+    * best val_macro_f1: 0.3628 at epoch 3 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.3628 at epoch 3 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase1_frozen] epoch   4 | tr_loss 1.4371 | val_loss 1.4585 | tr_acc 0.5924 | val_acc 0.5398 | val_f1_macro 0.3548
+  [phase1_frozen] epoch   5 | tr_loss 1.4317 | val_loss 1.5305 | tr_acc 0.5935 | val_acc 0.5589 | val_f1_macro 0.3495
+  [phase1_frozen] epoch   6 | tr_loss 1.4145 | val_loss 1.4478 | tr_acc 0.5947 | val_acc 0.5515 | val_f1_macro 0.3603
+  [phase1_frozen] epoch   7 | tr_loss 1.3962 | val_loss 1.4657 | tr_acc 0.5862 | val_acc 0.5340 | val_f1_macro 0.3612
+  [phase1_frozen] epoch   8 | tr_loss 1.3723 | val_loss 1.4039 | tr_acc 0.6082 | val_acc 0.5480 | val_f1_macro 0.3722
+    * best val_macro_f1: 0.3722 at epoch 8 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.3722 at epoch 8 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase1_frozen] epoch   9 | tr_loss 1.3104 | val_loss 1.4022 | tr_acc 0.6111 | val_acc 0.5597 | val_f1_macro 0.3841
+    * best val_macro_f1: 0.3841 at epoch 9 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.3841 at epoch 9 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase1_frozen] epoch  10 | tr_loss 1.3221 | val_loss 1.4297 | tr_acc 0.6183 | val_acc 0.5554 | val_f1_macro 0.3706
+
+==============================================================
+  PHASE 2: Unfreeze last 30%, LR=5e-05
+==============================================================
+  [phase2_finetune] epoch  11 | tr_loss 1.2300 | val_loss 1.3654 | tr_acc 0.6497 | val_acc 0.5752 | val_f1_macro 0.4084
+    * best val_macro_f1: 0.4084 at epoch 11 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4084 at epoch 11 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  12 | tr_loss 1.1079 | val_loss 1.3867 | tr_acc 0.6736 | val_acc 0.5768 | val_f1_macro 0.4152
+    * best val_macro_f1: 0.4152 at epoch 12 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4152 at epoch 12 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  13 | tr_loss 1.0759 | val_loss 1.3600 | tr_acc 0.7050 | val_acc 0.6067 | val_f1_macro 0.4346
+    * best val_macro_f1: 0.4346 at epoch 13 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4346 at epoch 13 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  14 | tr_loss 0.9920 | val_loss 1.3387 | tr_acc 0.6900 | val_acc 0.5896 | val_f1_macro 0.4337
+  [phase2_finetune] epoch  15 | tr_loss 0.9273 | val_loss 1.3801 | tr_acc 0.7269 | val_acc 0.6273 | val_f1_macro 0.4422
+    * best val_macro_f1: 0.4422 at epoch 15 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4422 at epoch 15 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  16 | tr_loss 0.9003 | val_loss 1.4472 | tr_acc 0.7291 | val_acc 0.6160 | val_f1_macro 0.4477
+    * best val_macro_f1: 0.4477 at epoch 16 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4477 at epoch 16 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  17 | tr_loss 0.8429 | val_loss 1.4705 | tr_acc 0.7411 | val_acc 0.6316 | val_f1_macro 0.4729
+    * best val_macro_f1: 0.4729 at epoch 17 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4729 at epoch 17 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  18 | tr_loss 0.7952 | val_loss 1.5212 | tr_acc 0.7523 | val_acc 0.6424 | val_f1_macro 0.4687
+  [phase2_finetune] epoch  19 | tr_loss 0.7511 | val_loss 1.5093 | tr_acc 0.7617 | val_acc 0.6354 | val_f1_macro 0.4770
+    * best val_macro_f1: 0.4770 at epoch 19 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4770 at epoch 19 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  20 | tr_loss 0.7279 | val_loss 1.6227 | tr_acc 0.7843 | val_acc 0.6448 | val_f1_macro 0.4682
+  [phase2_finetune] epoch  21 | tr_loss 0.7000 | val_loss 1.5346 | tr_acc 0.7820 | val_acc 0.6358 | val_f1_macro 0.4658
+  [phase2_finetune] epoch  22 | tr_loss 0.6477 | val_loss 1.7026 | tr_acc 0.7978 | val_acc 0.6483 | val_f1_macro 0.4739
+  [phase2_finetune] epoch  23 | tr_loss 0.6334 | val_loss 1.7264 | tr_acc 0.8056 | val_acc 0.6564 | val_f1_macro 0.4815
+    * best val_macro_f1: 0.4815 at epoch 23 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4815 at epoch 23 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  24 | tr_loss 0.6103 | val_loss 1.8292 | tr_acc 0.8128 | val_acc 0.6747 | val_f1_macro 0.4875
+    * best val_macro_f1: 0.4875 at epoch 24 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4875 at epoch 24 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  [phase2_finetune] epoch  25 | tr_loss 0.5841 | val_loss 1.7671 | tr_acc 0.8204 | val_acc 0.6638 | val_f1_macro 0.4966
+    * best val_macro_f1: 0.4966 at epoch 25 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+    * true best val_macro_f1: 0.4966 at epoch 25 -> saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_true_efficientnet_b3.pt
+  Restored best checkpoint: runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\best_efficientnet_b3.pt
+  Training curves saved to runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted
+
+  [OK] EfficientNet-B3 training complete.
+  Experiment dir: runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted
+
+
+==== dump_predictions ====
+  val: N=2573  acc=0.6634  (27s)
+  test: N=2523  acc=0.6857  (30s)
+  official_test: N=8238  acc=0.4785  (54s)
+  saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\dump.npz
+
+
+==== dump_predictions (true best epoch) ====
+  val: N=2573  acc=0.6634  (26s)
+  test: N=2523  acc=0.6857  (26s)
+  official_test: N=8238  acc=0.4785  (39s)
+  saved runs\repeat_batch_20261107\experiments\seed44_efficientnet_b3_weighted\dump_besttrue.npz

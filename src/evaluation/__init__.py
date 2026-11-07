@@ -1,0 +1,1 @@
+"""Evaluation subpackage: full metric computation and reporting."""

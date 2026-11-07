@@ -1,0 +1,8 @@
+{
+  "paired_gradcam_vs_centre": {
+    "deletion_diff_mean": 0.0003626028774306178,
+    "deletion_wilcoxon_p": 0.8606387376785278,
+    "insertion_diff_mean": 0.030910978093743324,
+    "insertion_wilcoxon_p": 0.00215507042594254
+  }
+}

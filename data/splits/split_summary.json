@@ -1,0 +1,41 @@
+{
+  "train": {
+    "n_images": 20235,
+    "distribution": {
+      "MEL": 3579,
+      "NV": 10325,
+      "BCC": 2638,
+      "AK": 683,
+      "BKL": 2100,
+      "DF": 197,
+      "VASC": 208,
+      "SCC": 505
+    }
+  },
+  "val": {
+    "n_images": 2573,
+    "distribution": {
+      "MEL": 448,
+      "NV": 1300,
+      "BCC": 349,
+      "AK": 93,
+      "BKL": 270,
+      "DF": 22,
+      "VASC": 24,
+      "SCC": 67
+    }
+  },
+  "test": {
+    "n_images": 2523,
+    "distribution": {
+      "MEL": 495,
+      "NV": 1250,
+      "BCC": 336,
+      "AK": 91,
+      "BKL": 254,
+      "DF": 20,
+      "VASC": 21,
+      "SCC": 56
+    }
+  }
+}

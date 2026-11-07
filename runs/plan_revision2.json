@@ -1,0 +1,9 @@
+[
+  {"seed": 45, "model": "resnet50", "base_config": "configs/ablation_e0.yaml", "condition": "resnet50_unweighted", "size": 224},
+  {"seed": 46, "model": "resnet50", "base_config": "configs/baseline.yaml", "condition": "resnet50_weighted", "size": 224},
+  {"seed": 46, "model": "resnet50", "base_config": "configs/ablation_e0.yaml", "condition": "resnet50_unweighted", "size": 224},
+  {"seed": 42, "model": "resnet50", "base_config": "configs/baseline.yaml", "condition": "resnet50_weighted_r320", "size": 320},
+  {"seed": 42, "model": "resnet50", "base_config": "configs/ablation_e0.yaml", "condition": "resnet50_unweighted_r320", "size": 320},
+  {"seed": 43, "model": "resnet50", "base_config": "configs/baseline.yaml", "condition": "resnet50_weighted_r320", "size": 320},
+  {"seed": 43, "model": "resnet50", "base_config": "configs/ablation_e0.yaml", "condition": "resnet50_unweighted_r320", "size": 320}
+]

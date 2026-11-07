@@ -1,0 +1,1 @@
+"""Training subpackage: training loop, callbacks, metrics."""

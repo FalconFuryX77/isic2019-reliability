@@ -1,0 +1,84 @@
+batch=repeat_batch_20261107
+job=4/12
+seed=44
+model=resnet50
+condition=resnet50_weighted
+config=runs\repeat_batch_20261107\configs\seed44_resnet50_weighted.yaml
+
+
+  Backbone: ResNet-50 | Device: cuda | Seed: 44
+  Train: 20,235 | Val: 2,573 | Test: 2,523
+  Parameters: total=23,775,432 trainable=23,775,432
+  Class weights (from train split): {'MEL': 0.7067267298698425, 'NV': 0.24497579038143158, 'BCC': 0.9588229656219482, 'AK': 3.7033309936523438, 'BKL': 1.204464316368103, 'DF': 12.83946704864502, 'VASC': 12.160456657409668, 'SCC': 5.008663177490234}
+
+==============================================================
+  PHASE 1: Frozen backbone, LR=0.001
+==============================================================
+  [phase1_frozen] epoch   1 | tr_loss 1.7192 | val_loss 1.5749 | tr_acc 0.5423 | val_acc 0.5410 | val_f1_macro 0.3518
+    * best val_macro_f1: 0.3518 at epoch 1 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.3518 at epoch 1 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase1_frozen] epoch   2 | tr_loss 1.5305 | val_loss 1.5944 | tr_acc 0.5245 | val_acc 0.4998 | val_f1_macro 0.3362
+  [phase1_frozen] epoch   3 | tr_loss 1.4771 | val_loss 1.5277 | tr_acc 0.5901 | val_acc 0.5375 | val_f1_macro 0.3634
+    * best val_macro_f1: 0.3634 at epoch 3 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.3634 at epoch 3 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase1_frozen] epoch   4 | tr_loss 1.4351 | val_loss 1.5151 | tr_acc 0.5736 | val_acc 0.5200 | val_f1_macro 0.3658
+    * best val_macro_f1: 0.3658 at epoch 4 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.3658 at epoch 4 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase1_frozen] epoch   5 | tr_loss 1.4044 | val_loss 1.5180 | tr_acc 0.5445 | val_acc 0.4905 | val_f1_macro 0.3377
+  [phase1_frozen] epoch   6 | tr_loss 1.3800 | val_loss 1.5593 | tr_acc 0.5587 | val_acc 0.5317 | val_f1_macro 0.3631
+  [phase1_frozen] epoch   7 | tr_loss 1.3566 | val_loss 1.5449 | tr_acc 0.6464 | val_acc 0.6047 | val_f1_macro 0.3788
+    * best val_macro_f1: 0.3788 at epoch 7 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.3788 at epoch 7 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase1_frozen] epoch   8 | tr_loss 1.3768 | val_loss 1.5183 | tr_acc 0.5985 | val_acc 0.5690 | val_f1_macro 0.3717
+  [phase1_frozen] epoch   9 | tr_loss 1.3669 | val_loss 1.5481 | tr_acc 0.5920 | val_acc 0.5328 | val_f1_macro 0.3547
+  [phase1_frozen] epoch  10 | tr_loss 1.3582 | val_loss 1.4410 | tr_acc 0.5989 | val_acc 0.5550 | val_f1_macro 0.3858
+    * best val_macro_f1: 0.3858 at epoch 10 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.3858 at epoch 10 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+
+==============================================================
+  PHASE 2: Unfreeze last 30%, LR=5e-05
+==============================================================
+  [phase2_finetune] epoch  11 | tr_loss 1.3147 | val_loss 1.5224 | tr_acc 0.6678 | val_acc 0.6215 | val_f1_macro 0.4154
+    * best val_macro_f1: 0.4154 at epoch 11 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.4154 at epoch 11 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase2_finetune] epoch  12 | tr_loss 1.0820 | val_loss 1.5610 | tr_acc 0.7158 | val_acc 0.6374 | val_f1_macro 0.4755
+    * best val_macro_f1: 0.4755 at epoch 12 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.4755 at epoch 12 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase2_finetune] epoch  13 | tr_loss 0.9739 | val_loss 1.5199 | tr_acc 0.7358 | val_acc 0.6502 | val_f1_macro 0.4742
+  [phase2_finetune] epoch  14 | tr_loss 0.8535 | val_loss 1.5472 | tr_acc 0.7546 | val_acc 0.6751 | val_f1_macro 0.5312
+    * best val_macro_f1: 0.5312 at epoch 14 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.5312 at epoch 14 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase2_finetune] epoch  15 | tr_loss 0.7413 | val_loss 1.5617 | tr_acc 0.7724 | val_acc 0.6665 | val_f1_macro 0.5012
+  [phase2_finetune] epoch  16 | tr_loss 0.6805 | val_loss 1.7054 | tr_acc 0.8009 | val_acc 0.6759 | val_f1_macro 0.4835
+  [phase2_finetune] epoch  17 | tr_loss 0.6055 | val_loss 1.9868 | tr_acc 0.8103 | val_acc 0.6673 | val_f1_macro 0.4771
+  [phase2_finetune] epoch  18 | tr_loss 0.5368 | val_loss 1.8869 | tr_acc 0.8290 | val_acc 0.6883 | val_f1_macro 0.5288
+  [phase2_finetune] epoch  19 | tr_loss 0.4227 | val_loss 2.0194 | tr_acc 0.8484 | val_acc 0.6879 | val_f1_macro 0.5330
+    * best val_macro_f1: 0.5330 at epoch 19 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.5330 at epoch 19 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase2_finetune] epoch  20 | tr_loss 0.3439 | val_loss 2.4620 | tr_acc 0.8818 | val_acc 0.7198 | val_f1_macro 0.5244
+  [phase2_finetune] epoch  21 | tr_loss 0.3231 | val_loss 2.4929 | tr_acc 0.8899 | val_acc 0.7248 | val_f1_macro 0.5754
+    * best val_macro_f1: 0.5754 at epoch 21 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+    * true best val_macro_f1: 0.5754 at epoch 21 -> saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_true_resnet50.pt
+  [phase2_finetune] epoch  22 | tr_loss 0.3014 | val_loss 2.7448 | tr_acc 0.8967 | val_acc 0.7167 | val_f1_macro 0.5127
+  [phase2_finetune] epoch  23 | tr_loss 0.2763 | val_loss 2.7092 | tr_acc 0.8991 | val_acc 0.7077 | val_f1_macro 0.5181
+  [phase2_finetune] epoch  24 | tr_loss 0.2856 | val_loss 3.0684 | tr_acc 0.9033 | val_acc 0.7058 | val_f1_macro 0.5153
+  [phase2_finetune] epoch  25 | tr_loss 0.2312 | val_loss 3.4897 | tr_acc 0.9207 | val_acc 0.7097 | val_f1_macro 0.5373
+  Restored best checkpoint: runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\best_resnet50.pt
+  Training curves saved to runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted
+
+  [OK] ResNet-50 training complete.
+  Experiment dir: runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted
+
+
+==== dump_predictions ====
+  val: N=2573  acc=0.7248  (27s)
+  test: N=2523  acc=0.7222  (30s)
+  official_test: N=8238  acc=0.5038  (53s)
+  saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\dump.npz
+
+
+==== dump_predictions (true best epoch) ====
+  val: N=2573  acc=0.7248  (26s)
+  test: N=2523  acc=0.7222  (26s)
+  official_test: N=8238  acc=0.5038  (40s)
+  saved runs\repeat_batch_20261107\experiments\seed44_resnet50_weighted\dump_besttrue.npz

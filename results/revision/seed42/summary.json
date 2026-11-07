@@ -1,0 +1,24 @@
+{
+  "temperatures": {
+    "resnet50_E1": 2.9107194895809574,
+    "resnet50_E0": 2.936188173758715,
+    "effnetb3_E1": 1.7259072411251972
+  },
+  "validation_selection": {
+    "criterion": "validation macro-F1 (same criterion as checkpointing), tie-break validation balanced accuracy",
+    "resnet50_val_macro_f1": 0.514693152705489,
+    "effnet_val_macro_f1": 0.4900418580125945,
+    "resnet50_val_bal_acc": 0.5102403094526312,
+    "effnet_val_bal_acc": 0.5142058769123465,
+    "selected": "resnet50_E1"
+  },
+  "selective_tau_cov85": {
+    "resnet50_E1": 0.429,
+    "resnet50_E0": 0.45,
+    "effnetb3_E1": 0.392
+  },
+  "T_after_prior_correction": {
+    "resnet50_E1": 3.1811299315697337,
+    "effnetb3_E1": 1.832089996587151
+  }
+}

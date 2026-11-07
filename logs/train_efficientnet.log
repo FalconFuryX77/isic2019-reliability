@@ -1,0 +1,59 @@
+
+  Backbone: EfficientNet-B3 | Device: cuda | Seed: 42
+  Train: 20,235 | Val: 2,573 | Test: 2,523
+  Parameters: total=10,897,072 trainable=10,897,072
+  Class weights (from train split): {'MEL': 0.7067267298698425, 'NV': 0.24497579038143158, 'BCC': 0.9588229656219482, 'AK': 3.7033309936523438, 'BKL': 1.204464316368103, 'DF': 12.83946704864502, 'VASC': 12.160456657409668, 'SCC': 5.008663177490234}
+
+==============================================================
+  PHASE 1: Frozen backbone, LR=0.001
+==============================================================
+  [phase1_frozen] epoch   1 | tr_loss 1.6652 | val_loss 1.5496 | tr_acc 0.5342 | val_acc 0.4963 | val_f1_macro 0.3225
+    * best val_macro_f1: 0.3225 at epoch 1 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase1_frozen] epoch   2 | tr_loss 1.5288 | val_loss 1.4561 | tr_acc 0.5693 | val_acc 0.5282 | val_f1_macro 0.3434
+    * best val_macro_f1: 0.3434 at epoch 2 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase1_frozen] epoch   3 | tr_loss 1.4927 | val_loss 1.5830 | tr_acc 0.6007 | val_acc 0.5414 | val_f1_macro 0.3612
+    * best val_macro_f1: 0.3612 at epoch 3 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase1_frozen] epoch   4 | tr_loss 1.4522 | val_loss 1.4981 | tr_acc 0.6017 | val_acc 0.5507 | val_f1_macro 0.3527
+  [phase1_frozen] epoch   5 | tr_loss 1.4243 | val_loss 1.5228 | tr_acc 0.5505 | val_acc 0.5068 | val_f1_macro 0.3504
+  [phase1_frozen] epoch   6 | tr_loss 1.3952 | val_loss 1.4579 | tr_acc 0.6139 | val_acc 0.5534 | val_f1_macro 0.3635
+    * best val_macro_f1: 0.3635 at epoch 6 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase1_frozen] epoch   7 | tr_loss 1.3816 | val_loss 1.4930 | tr_acc 0.5673 | val_acc 0.5251 | val_f1_macro 0.3537
+  [phase1_frozen] epoch   8 | tr_loss 1.3559 | val_loss 1.5427 | tr_acc 0.6123 | val_acc 0.5511 | val_f1_macro 0.3540
+  [phase1_frozen] epoch   9 | tr_loss 1.3905 | val_loss 1.4597 | tr_acc 0.5873 | val_acc 0.5052 | val_f1_macro 0.3440
+  [phase1_frozen] epoch  10 | tr_loss 1.3326 | val_loss 1.4263 | tr_acc 0.5882 | val_acc 0.5286 | val_f1_macro 0.3647
+    * best val_macro_f1: 0.3647 at epoch 10 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+
+==============================================================
+  PHASE 2: Unfreeze last 30%, LR=5e-05
+==============================================================
+  [phase2_finetune] epoch  11 | tr_loss 1.2669 | val_loss 1.3750 | tr_acc 0.6321 | val_acc 0.5643 | val_f1_macro 0.4095
+    * best val_macro_f1: 0.4095 at epoch 11 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  12 | tr_loss 1.1526 | val_loss 1.3889 | tr_acc 0.6690 | val_acc 0.5911 | val_f1_macro 0.4236
+    * best val_macro_f1: 0.4236 at epoch 12 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  13 | tr_loss 1.0810 | val_loss 1.3466 | tr_acc 0.6810 | val_acc 0.5989 | val_f1_macro 0.4391
+    * best val_macro_f1: 0.4391 at epoch 13 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  14 | tr_loss 1.0161 | val_loss 1.4491 | tr_acc 0.7068 | val_acc 0.6141 | val_f1_macro 0.4394
+    * best val_macro_f1: 0.4394 at epoch 14 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  15 | tr_loss 0.9663 | val_loss 1.4479 | tr_acc 0.7101 | val_acc 0.6040 | val_f1_macro 0.4454
+    * best val_macro_f1: 0.4454 at epoch 15 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  16 | tr_loss 0.9143 | val_loss 1.4802 | tr_acc 0.7265 | val_acc 0.6230 | val_f1_macro 0.4461
+    * best val_macro_f1: 0.4461 at epoch 16 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  17 | tr_loss 0.8555 | val_loss 1.5949 | tr_acc 0.7420 | val_acc 0.6354 | val_f1_macro 0.4397
+  [phase2_finetune] epoch  18 | tr_loss 0.8454 | val_loss 1.6426 | tr_acc 0.7523 | val_acc 0.6284 | val_f1_macro 0.4495
+    * best val_macro_f1: 0.4495 at epoch 18 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  19 | tr_loss 0.7767 | val_loss 1.5903 | tr_acc 0.7538 | val_acc 0.6269 | val_f1_macro 0.4539
+    * best val_macro_f1: 0.4539 at epoch 19 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  20 | tr_loss 0.7285 | val_loss 1.6078 | tr_acc 0.7756 | val_acc 0.6366 | val_f1_macro 0.4518
+  [phase2_finetune] epoch  21 | tr_loss 0.7235 | val_loss 1.7468 | tr_acc 0.7838 | val_acc 0.6564 | val_f1_macro 0.4796
+    * best val_macro_f1: 0.4796 at epoch 21 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  22 | tr_loss 0.7066 | val_loss 1.7426 | tr_acc 0.7967 | val_acc 0.6525 | val_f1_macro 0.4518
+  [phase2_finetune] epoch  23 | tr_loss 0.6714 | val_loss 1.7078 | tr_acc 0.7925 | val_acc 0.6588 | val_f1_macro 0.4839
+    * best val_macro_f1: 0.4839 at epoch 23 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  [phase2_finetune] epoch  24 | tr_loss 0.6046 | val_loss 1.7651 | tr_acc 0.8116 | val_acc 0.6681 | val_f1_macro 0.4808
+  [phase2_finetune] epoch  25 | tr_loss 0.5880 | val_loss 1.8294 | tr_acc 0.8199 | val_acc 0.6627 | val_f1_macro 0.4896
+    * best val_macro_f1: 0.4896 at epoch 25 -> saved experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  Restored best checkpoint: experiments\efficientnet_b3_baseline\best_efficientnet_b3.pt
+  Training curves saved to experiments\efficientnet_b3_baseline
+
+  [OK] EfficientNet-B3 training complete.
+  Experiment dir: experiments\efficientnet_b3_baseline

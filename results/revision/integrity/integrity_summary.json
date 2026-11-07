@@ -1,0 +1,50 @@
+{
+  "n_images": 25331,
+  "n_with_lesion_id": 23247,
+  "n_without_lesion_id": 2084,
+  "sources": {
+    "BCN_20000": 12413,
+    "HAM10000": 10015,
+    "MSK": 2903
+  },
+  "without_lesion_id_by_source": {
+    "MSK": 2084
+  },
+  "n_groups": 13931,
+  "groups_with_multiple_images": 5059,
+  "max_images_per_lesion": 31,
+  "lesion_overlap": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "exact_dup_groups_md5_file": 50,
+  "exact_dup_images_md5_file": 100,
+  "exact_dup_groups_cross_split_md5_file": 4,
+  "exact_dup_internal_vs_official_md5_file": 0,
+  "exact_dup_groups_md5_pixels": 50,
+  "exact_dup_images_md5_pixels": 100,
+  "exact_dup_groups_cross_split_md5_pixels": 4,
+  "exact_dup_internal_vs_official_md5_pixels": 0,
+  "strict_rule_within_split_pairs": 428,
+  "strict_rule_within_split_same_lesion_frac": 0.9719626168224299,
+  "near_identical_cross_split_pairs": 7,
+  "loose_cross_split_pairs": 2469,
+  "loose_cross_split_test_images": 276,
+  "near_dup_candidates_internal": 42708,
+  "near_dup_candidates_cross_split": 11000,
+  "near_dup_strong_cross_split": 10,
+  "near_dup_strong_cross_split_by_pair": {
+    "train-test": 6,
+    "train-val": 2,
+    "val-test": 2
+  },
+  "near_dup_strong_cross_split_by_source": {
+    "BCN_20000-BCN_20000": 6,
+    "MSK-MSK": 4
+  },
+  "near_dup_strong_cross_split_test_images": 8,
+  "official_vs_internal_candidates": 34755,
+  "official_vs_internal_strong": 2,
+  "official_images_with_strong_match": 2
+}

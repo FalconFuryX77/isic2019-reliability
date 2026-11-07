@@ -1,0 +1,84 @@
+seed: 45
+dataset:
+  raw_dir: data/raw
+  train_gt_csv: ISIC_2019_Training_GroundTruth.csv
+  train_metadata_csv: ISIC_2019_Training_Metadata.csv
+  test_gt_csv: ISIC_2019_Test_GroundTruth.csv
+  test_metadata_csv: ISIC_2019_Test_Metadata.csv
+  train_input_dir: ISIC_2019_Training_Input
+  test_input_dir: ISIC_2019_Test_Input
+  use_internal_test_split: true
+  use_official_test: false
+split:
+  train_frac: 0.8
+  val_frac: 0.1
+  test_frac: 0.1
+  group_by: lesion_id
+  stratify: true
+  drop_unk: true
+preprocessing:
+  image_size: 224
+  interpolation: bicubic
+  channels: 3
+  cache_dir: data/processed/cache224/train
+augmentation:
+  enabled: true
+  rotation_deg: 15
+  zoom_range: 0.1
+  translation_pct: 0.05
+  brightness_jitter: 0.1
+  contrast_jitter: 0.1
+  horizontal_flip: true
+  vertical_flip: false
+training:
+  batch_size: 32
+  num_workers: 4
+  optimizer: adamw
+  weight_decay: 0.0001
+  label_smoothing: 0.0
+  use_class_weights: true
+  phase1_epochs: 10
+  phase1_lr: 0.001
+  phase1_frozen: true
+  phase2_epochs: 15
+  phase2_lr: 5.0e-05
+  phase2_unfreeze_fraction: 0.3
+  early_stop_patience: 6
+  reduce_lr_patience: 3
+  reduce_lr_factor: 0.5
+  grad_clip_norm: 1.0
+  save_best_monitor: val_macro_f1
+head:
+  dense_size: 128
+  dropout: 0.5
+  use_batchnorm: true
+models:
+  resnet50:
+    pretrained: true
+    freeze_backbone_phase1: true
+  efficientnet_b3:
+    pretrained: true
+    freeze_backbone_phase1: true
+calibration:
+  temperature_bounds:
+  - 0.1
+  - 10.0
+  ece_bins: 15
+  reliability_bins: 10
+uncertainty:
+  mc_dropout_passes: 30
+  use_temperature: true
+explainability:
+  method: gradcam
+  num_examples_per_category: 3
+selective:
+  threshold_grid: 100
+paths:
+  splits_dir: data/splits
+  experiments_dir: runs\repeat_batch_20261107\experiments
+  checkpoints_dir: checkpoints
+  results_dir: results
+  figures_dir: results/figures
+  tables_dir: results/tables
+  gradcam_dir: results/gradcam
+  logs_dir: logs

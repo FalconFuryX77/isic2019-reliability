@@ -1,0 +1,38 @@
+{
+  "protocol": "threshold selected on VALIDATION, locked, applied to TEST",
+  "summary": {
+    "cov85": {
+      "target_coverage": 0.85,
+      "locked_threshold": 0.43,
+      "val_coverage": 0.8504,
+      "val_accuracy": 0.7633,
+      "test_coverage": 0.8831,
+      "test_accuracy": 0.7693,
+      "test_risk": 0.2307,
+      "test_n_accepted": 2228,
+      "test_n_rejected": 295
+    },
+    "cov90": {
+      "target_coverage": 0.9,
+      "locked_threshold": 0.391,
+      "val_coverage": 0.9001,
+      "val_accuracy": 0.7435,
+      "test_coverage": 0.9223,
+      "test_accuracy": 0.7525,
+      "test_risk": 0.2475,
+      "test_n_accepted": 2327,
+      "test_n_rejected": 196
+    },
+    "cov95": {
+      "target_coverage": 0.95,
+      "locked_threshold": 0.348,
+      "val_coverage": 0.9409,
+      "val_accuracy": 0.7257,
+      "test_coverage": 0.9501,
+      "test_accuracy": 0.7443,
+      "test_risk": 0.2557,
+      "test_n_accepted": 2397,
+      "test_n_rejected": 126
+    }
+  }
+}
