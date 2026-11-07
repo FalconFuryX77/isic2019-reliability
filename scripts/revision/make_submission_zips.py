@@ -2,7 +2,8 @@
 """
 Self-contained LaTeX packages for submission (no generated/ folder, no cross-document xr links):
 
-  submission/paper_latex.zip     main.tex (all numbers and tables written in), references.bib, figures/
+  submission/paper_latex.zip     main.tex (IEEE conference template; all numbers and tables written in),
+                                 references.bib, figures/, IEEEtran.cls, IEEEtran.bst  (compiles with pdfLaTeX on Overleaf)
   submission/response_latex.zip  response_to_reviewers.tex (numbers and paper/supplement references written in)
   submission/supplementary_latex.zip  supplementary.tex, references.bib (cited entries only), figures/
 
@@ -74,16 +75,49 @@ def drop_generated_inputs(text):
     return text
 
 
+def _group(s, i):
+    """Return the balanced {...} group starting at s[i] == '{' (without the braces) and the index after it."""
+    assert s[i] == "{"
+    depth, j = 0, i
+    while True:
+        if s[j] == "{":
+            depth += 1
+        elif s[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return s[i + 1:j], j + 1
+        j += 1
+
+
 def aux_labels(aux):
-    """label -> printed number, from a hyperref .aux file."""
+    """label -> printed number, from an .aux file (IEEEtran writes subsection numbers as \\mbox{V-A})."""
     labels = {}
-    for m in re.finditer(r"\\newlabel\{([^}]*)\}\{\{([^}]*)\}", aux.read_text(encoding="utf-8", errors="ignore")):
-        labels.setdefault(m.group(1), m.group(2))
+    s = aux.read_text(encoding="utf-8", errors="ignore")
+    for m in re.finditer(r"\\newlabel\{([^}]*)\}\{", s):
+        outer, _ = _group(s, m.end() - 1)
+        value, _ = _group(outer, 0) if outer.startswith("{") else (outer, 0)
+        value = re.sub(r"\\mbox\s*\{([^}]*)\}", r"\1", value).strip()
+        labels.setdefault(m.group(1), value)
     return labels
 
 
-def compile_and_text(folder, tex):
-    r = subprocess.run(["tectonic", "--keep-logs", tex], cwd=folder, capture_output=True, text=True)
+def compile_and_text(folder, tex, engine="tectonic"):
+    if engine == "pdflatex":
+        # exactly what Overleaf does with its default compiler: pdfLaTeX, BibTeX, pdfLaTeX twice
+        sys.path.insert(0, str(ROOT))
+        from scripts.revision.build_pdfs import MIKTEX, tex_env
+        env = tex_env()
+        cmd = [str(MIKTEX / "pdflatex.exe"), "-interaction=nonstopmode", tex]
+        subprocess.run(cmd, cwd=folder, capture_output=True, text=True, env=env)
+        subprocess.run([str(MIKTEX / "bibtex.exe"), tex.replace(".tex", "")], cwd=folder, capture_output=True,
+                       text=True, env=env)
+        subprocess.run(cmd, cwd=folder, capture_output=True, text=True, env=env)
+        r = subprocess.run(cmd, cwd=folder, capture_output=True, text=True, env=env)
+        log = (folder / tex.replace(".tex", ".log")).read_text(encoding="utf-8", errors="ignore")
+        if [l for l in log.splitlines() if l.startswith("! ")] or re.search(r"(Reference|Citation) `", log):
+            raise SystemExit(f"compilation of {tex} had errors or undefined references")
+    else:
+        r = subprocess.run(["tectonic", "--keep-logs", tex], cwd=folder, capture_output=True, text=True)
     if r.returncode != 0:
         print(r.stdout[-3000:], r.stderr[-3000:])
         raise SystemExit(f"compilation of {tex} failed")
@@ -117,6 +151,9 @@ def build_paper(stage):
     text = text.replace("{Images/", "{figures/")
     text = text.replace("\\bibliography{references_main}", "\\bibliography{references}")
     shutil.copy2(PR / "references_main.bib", stage / "references.bib")
+    # IEEE's own class and bibliography style, so Overleaf uses exactly the versions the paper was checked with
+    shutil.copy2(PR / "IEEEtran.cls", stage / "IEEEtran.cls")
+    shutil.copy2(PR / "IEEEtran.bst", stage / "IEEEtran.bst")
     (stage / "main.tex").write_text(text, encoding="utf-8")
     return figs
 
@@ -171,7 +208,7 @@ def main():
     figs = build_paper(sp)
     test = tmp / "test_paper"
     shutil.copytree(sp, test)
-    pages, txt = compile_and_text(test, "main.tex")
+    pages, txt = compile_and_text(test, "main.tex", engine="pdflatex")
     ref = subprocess.run(["pdftotext", str(B / "main.pdf"), "-"], capture_output=True, text=True,
                          encoding="utf-8", errors="ignore").stdout
     same = norm(txt) == norm(ref)
