@@ -36,11 +36,12 @@ def main():
     print(lint2.stdout)
     (P / "latexmkrc").write_text(LATEXMKRC, encoding="utf-8")
     used = set()
-    for f in ["main.tex", "response_to_reviewers.tex"]:
+    for f in ["main.tex", "supplementary.tex", "response_to_reviewers.tex"]:
         used |= set(re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", (P / f).read_text(encoding="utf-8")))
     out = ROOT / "paper_revision_overleaf.zip"
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
-        for f in ["main.tex", "response_to_reviewers.tex", "references.bib", "latexmkrc"]:
+        for f in ["main.tex", "supplementary.tex", "response_to_reviewers.tex", "references.bib",
+                  "references_main.bib", "latexmkrc"]:
             z.write(P / f, f)
         for f in sorted((P / "generated").glob("*.tex")):
             z.write(f, f"generated/{f.name}")

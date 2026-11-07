@@ -41,7 +41,7 @@ def write(name, body):
 
 def tabular(caption, label, header, rows, colspec, star=False, note=None, size="\\footnotesize"):
     env = "table*" if star else "table"
-    lines = [f"\\begin{{{env}}}[!t]", "\\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}", size,
+    lines = [f"\\begin{{{env}}}[{'!t' if star else '!htbp'}]", "\\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}", size,
              "\\setlength{\\tabcolsep}{3pt}", f"\\begin{{tabular}}{{{colspec}}}", "\\toprule",
              " & ".join(header) + " \\\\", "\\midrule"]
     for r in rows:
@@ -254,9 +254,14 @@ def seed42():
     for _, r in sg.iterrows():
         rows.append([mod[r.model], f"{r.target_risk:.2f}", f3(r.threshold), f3(r.risk_bound), f3(r.val_coverage),
                      f3(r.test_coverage), f3(r.test_risk)])
-    write("tab_sgr", tabular(
+    write("tab_sgr_full", tabular(
         "Risk-controlled thresholds (SGR, Geifman \\& El-Yaniv) fitted on validation with $\\delta=0.05$ and applied to test.",
-        "tab:sgr", ["Model", "$r^*$", "$\\theta$", "Bound", "Val.\\ cov.", "Test cov.", "Test risk"], rows, "lcccccc"))
+        "tab:sgrfull", ["Model", "$r^*$", "$\\theta$", "Bound", "Val.\\ cov.", "Test cov.", "Test risk"], rows, "lcccccc"))
+    rows_e1 = [r[1:] for r, (_, s_) in zip(rows, sg.iterrows()) if s_.model == "resnet50_E1"]
+    write("tab_sgr", tabular(
+        "Risk-controlled thresholds (SGR) for ResNet-50 E1 (seed 42), fitted on validation with $\\delta=0.05$ and "
+        "applied to test; the bound holds with probability 0.95 (all models: Supplementary~S5).",
+        "tab:sgr", ["$r^*$", "$\\theta$", "Bound", "Val.\\ cov.", "Test cov.", "Test risk"], rows_e1, "cccccc"))
     for _, r in sg[sg.model == "resnet50_E1"].iterrows():
         k = {0.10: "Ten", 0.15: "Fifteen", 0.20: "Twenty", 0.25: "TwentyFive"}[round(r.target_risk, 2)]
         m(f"SGR{k}Cov", r.test_coverage)
@@ -632,17 +637,17 @@ def derived():
         bal = np.mean([(pred[k & (y == c)] == c).mean() for c in present])
         rows.append([sname, str(int(k.sum())), f"{(pred[k] == y[k]).mean():.3f}", f"{bal:.3f}",
                      f"{ece_equal_width(y[k], p[k]):.3f}", f"{acc[k].mean():.3f}",
-                     f"{(pred[k & acc] == y[k & acc]).mean():.3f}",
-                     ", ".join(f"{CLASSES[c]}" for c in range(8) if (y[k] == c).sum() >= 5)])
+                     f"{(pred[k & acc] == y[k & acc]).mean():.3f}"])
         tag = {"HAM10000": "HAM", "BCN\\_20000": "BCN", "MSK": "MSK"}[sname]
         m(f"Src{tag}TestAcc", (pred[k] == y[k]).mean())
         m(f"Src{tag}TestECE", ece_equal_width(y[k], p[k]))
         m(f"Src{tag}TestCov", acc[k].mean())
     write("tab_source", tabular(
         "Internal-test performance of ResNet-50 E1 by source collection (temperature and $\\tau$ from validation). "
-        "Balanced accuracy is averaged over classes with $\\ge$5 test images in that source.",
-        "tab:source", ["Source", "$n$", "Acc.", "Bal.\\ acc.", "ECE$_T$", "Cov.", "Sel.\\ acc.", "Classes"], rows,
-        "lrccccc>{\\raggedright\\arraybackslash}p{2.3cm}", star=True))
+        "Balanced accuracy is averaged over classes with $\\ge$5 test images in that source (MSK: MEL, NV, BKL only). "
+        "Cov./Sel.\\ acc.: coverage and accepted accuracy at the 85\\% validation target.",
+        "tab:source", ["Source", "$n$", "Acc.", "Bal.\\ acc.", "ECE$_T$", "Cov.", "Sel.\\ acc."], rows,
+        "lrccccc", star=False))
     # near-duplicate exclusion effect
     cand = INT / "near_duplicate_candidates_internal.csv"
     if cand.exists():

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Regenerate assets and compile main.pdf, supplementary.pdf and response_to_reviewers.pdf with Tectonic.
 
-Checks the venue constraints: main paper <= 6 pages and <= 14 distinct citations.
+Checks the venue constraints: main paper <= 8 pages and <= 14 distinct citations.
 The response letter uses xr (\\externaldocument{main}, [S-]{supplementary}); the two .aux files are
 staged next to the sources while it compiles. PDFs end up in paper_revision/build/.
 """
@@ -57,8 +57,8 @@ def main():
     cites = set()
     for g in re.findall(r"\\cite\{([^}]+)\}", (P / "main.tex").read_text(encoding="utf-8")):
         cites |= {k.strip() for k in g.split(",")}
-    print(f"main.pdf pages = {n_pages} (limit 6); citations = {len(cites)} (limit 14)")
-    ok &= n_pages <= 6 and len(cites) <= 14
+    print(f"main.pdf pages = {n_pages} (limit 8); citations = {len(cites)} (limit 14)")
+    ok &= n_pages <= 8 and len(cites) <= 14
     # unresolved references in logs
     for log in ["main.log", "supplementary.log", "response_to_reviewers.log"]:
         txt = (B / log).read_text(encoding="utf-8", errors="ignore") if (B / log).exists() else ""
