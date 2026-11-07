@@ -5,6 +5,7 @@ Turn the revision result files into LaTeX tables + number macros
 the revised manuscript that comes from an experiment is produced here.
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -23,16 +24,45 @@ OFF = OUT / "official_test"
 INT = OUT / "integrity"
 GC = OUT / "gradcam"
 macros = {}
+# a hyphen directly before a number (not part of '--', a word or a decimal) is a minus sign;
+# \ensuremath{-} typesets a true minus both in running text and inside math
+_NEG = re.compile(r"(?<![\w.\-])-(?=\.?\d)")
+
+
+def tminus(s):
+    return _NEG.sub(lambda _: "\\ensuremath{-}", str(s))
 
 
 def m(name, value, nd=3):
     if isinstance(value, (float, np.floating)):
         value = f"{value:.{nd}f}"
-    macros[name] = str(value)
+    macros[name] = tminus(value)
 
 
 def f3(x, nd=3):
     return "--" if x is None or (isinstance(x, float) and not np.isfinite(x)) else f"{x:.{nd}f}"
+
+
+def fp(p):
+    """p-value for running text, used as $p=\\Macro$ (math mode): never prints 0.000."""
+    if p is None or not np.isfinite(p):
+        return "--"
+    if p >= 0.001:
+        return f"{p:.3f}"
+    if p >= 1e-4:
+        return f"{p:.4f}"
+    mant, exp = f"{p:.0e}".split("e")
+    return f"{mant}\\times10^{{{int(exp)}}}"
+
+
+def ptab(p, label=False):
+    """Compact p-value for table cells; label=True gives '$p=0.03$' / '$p<0.001$'."""
+    if p is None or not np.isfinite(p):
+        return "--"
+    s = f"{p:.2f}" if p >= 0.01 else (f"{p:.3f}" if p >= 0.001 else "<0.001")
+    if label:
+        return f"$p{'' if s.startswith('<') else '='}{s}$"
+    return f"${s}$" if s.startswith("<") else s
 
 
 def write(name, body):
@@ -45,7 +75,7 @@ def tabular(caption, label, header, rows, colspec, star=False, note=None, size="
              "\\setlength{\\tabcolsep}{3pt}", f"\\begin{{tabular}}{{{colspec}}}", "\\toprule",
              " & ".join(header) + " \\\\", "\\midrule"]
     for r in rows:
-        lines.append("\\midrule" if r == "MIDRULE" else " & ".join(r) + " \\\\")
+        lines.append("\\midrule" if r == "MIDRULE" else " & ".join(tminus(c) for c in r) + " \\\\")
     lines += ["\\bottomrule", "\\end{tabular}"]
     if note:
         lines.append(f"\\par\\vspace{{2pt}}\\parbox{{\\linewidth}}{{\\scriptsize {note}}}")
@@ -97,7 +127,7 @@ def seed42():
         d = ci("E1_minus_E0", metric)
         m(f"DiffEoneEzero{nm}", f"{d[0]:+.3f}")
         m(f"DiffEoneEzero{nm}CI", f"[{d[1]:+.3f}, {d[2]:+.3f}]")
-        m(f"DiffEoneEzero{nm}P", f"{d[3]:.3f}")
+        m(f"DiffEoneEzero{nm}P", fp(d[3]))
     for metric, nm in [("ECE_afterT", "ECEafter"), ("NLL_afterT", "NLLafter"), ("AUROC_MSP_vs_deterr", "AUROCmsp"),
                        ("AURC_MSP", "AURC"), ("AUROC_MCentropy_vs_MCerrors", "AUROCmcPaper"),
                        ("balanced_accuracy", "BalAcc"), ("macro_f1", "MacroFone"), ("accuracy", "Acc"),
@@ -328,7 +358,7 @@ def multiseed():
         q = p[(p.comparison == "resnet50_E1 - resnet50_E0") & (p.metric == met)]
         if len(q) and q.iloc[0].n_paired_seeds > 1:
             q = q.iloc[0]
-            cells.append(f"{q.mean_diff:+.3f} ({q.n_positive}/{q.n_paired_seeds}, $p$={q.paired_t_p:.2f})")
+            cells.append(f"{q.mean_diff:+.3f} ({q.n_positive}/{q.n_paired_seeds}, {ptab(q.paired_t_p, label=True)})")
         elif len(q):
             cells.append(f"{q.iloc[0].mean_diff:+.3f}")
         else:
@@ -358,7 +388,7 @@ def multiseed():
         if len(q):
             q = q.iloc[0]
             m(f"MSDiff{nm}", f"{q.mean_diff:+.3f}")
-            m(f"MSDiff{nm}P", f"{q.paired_t_p:.3f}" if np.isfinite(q.paired_t_p) else "--")
+            m(f"MSDiff{nm}P", fp(q.paired_t_p))
             m(f"MSDiff{nm}Pos", f"{q.n_positive}/{q.n_paired_seeds}")
     pr_runs = pd.read_csv(MS / "per_run_metrics.csv")
     new = sorted(int(s) for s in pr_runs[pr_runs.protocol == "paper"].seed.unique() if s != 42)
@@ -579,8 +609,8 @@ def gradcam():
     m("GCerrAUROC", 1 - c["AUROC_error_spatial_entropy"])  # score = map concentration (low entropy)
     m("GCrhoMC", c["spearman_entropyMap_vs_MCentropy"], 2)
     s = json.loads((GC / "summary.json").read_text())["paired_gradcam_vs_centre"]
-    m("GCvsCentreDelP", f"{s['deletion_wilcoxon_p']:.2g}")
-    m("GCvsCentreInsP", f"{s['insertion_wilcoxon_p']:.2g}")
+    m("GCvsCentreDelP", fp(s['deletion_wilcoxon_p']))
+    m("GCvsCentreInsP", fp(s['insertion_wilcoxon_p']))
 
 
 # ------------------------------------------------------------------ derived analyses from dumps
@@ -730,7 +760,7 @@ def compact():
         sd = sorted(set(a.index) & set(b.index))
         diff = (a.loc[sd] - b.loc[sd]).values
         p = st.ttest_1samp(diff, 0).pvalue if len(diff) > 1 else np.nan
-        r.append(f"{diff.mean():+.3f} ({p:.2f})" if len(diff) > 1 else f"{diff.mean():+.3f}")
+        r.append(f"{diff.mean():+.3f} ({ptab(p)})" if len(diff) > 1 else f"{diff.mean():+.3f}")
         rows.append(r)
     ns = {nm: int((d.model == mk).sum()) for mk, nm, _ in cols}
     hdr = ["Metric"] + [f"{nm} ($n$={ns[nm]})" for _, nm, _ in cols] + ["E1$-$E0 ($p$)"]
@@ -753,7 +783,7 @@ def compact():
         e0 = a.loc[sd, f"test_{met}"].values
         m(f"LA{nm}", la.mean())
         m(f"LAvsOne{nm}", f"{(la - e1).mean():+.3f}")
-        m(f"LAvsOne{nm}P", f"{st.ttest_1samp(la - e1, 0).pvalue:.3f}" if len(sd) > 1 else "--")
+        m(f"LAvsOne{nm}P", fp(st.ttest_1samp(la - e1, 0).pvalue) if len(sd) > 1 else "--")
         m(f"LAvsZero{nm}", f"{(la - e0).mean():+.3f}")
     m("LAnseeds", len(sd))
     m("LAoffBal", a.loc[sd, "off_LA_bal_acc_known"].mean())
