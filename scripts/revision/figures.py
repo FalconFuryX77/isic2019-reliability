@@ -22,10 +22,11 @@ F.mkdir(parents=True, exist_ok=True)
 plt.rcParams.update({"font.size": 8, "axes.titlesize": 8, "axes.labelsize": 8, "legend.fontsize": 7,
                      "font.family": "serif"})
 COL = {"MSP_T": "#1f4e79", "MC_entropy_T": "#c55a11", "MC_mutual_info_T": "#7f7f7f",
-       "softmax_entropy_T": "#548235", "random": "black"}
+       "softmax_entropy_T": "#548235", "random": "black", "MSP_raw": "#5b9bd5"}
 LAB = {"MSP_T": "max. calibrated prob. (MSP)", "MC_entropy_T": "MC-Dropout pred. entropy",
        "MC_mutual_info_T": "MC-Dropout mutual information", "softmax_entropy_T": "softmax entropy",
-       "random": "random rejection"}
+       "random": "random rejection", "MSP_raw": "MSP, uncalibrated softmax"}
+RAW_LS = (0, (4, 1.5, 1, 1.5))
 
 
 def save(fig, name):
@@ -43,6 +44,8 @@ def risk_coverage(d, T, tau):
         for n in ["MSP_T", "MC_entropy_T", "MC_mutual_info_T"]:
             c, r = risk_coverage_curve(err, s[n], 400)
             ax.plot(c, r, color=COL[n], lw=1.2, label=LAB[n])
+        c, r = risk_coverage_curve(err, s["MSP_raw"], 400)
+        ax.plot(c, r, color=COL["MSP_raw"], lw=1.0, ls=RAW_LS, label=LAB["MSP_raw"])
         ax.axhline(err.mean(), color="black", ls=":", lw=1, label=LAB["random"])
         conf = p["det"].max(1)
         a = conf >= tau
@@ -55,7 +58,7 @@ def risk_coverage(d, T, tau):
         ax.grid(alpha=0.3)
     axes[0].set_ylabel("selective risk (error rate)")
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=4, frameon=False, bbox_to_anchor=(0.5, 1.06))
+    fig.legend(h, l, loc="upper center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.12))
     save(fig, "fig_risk_coverage_val_test")
 
 
@@ -162,6 +165,8 @@ def rc_compact(d, T, tau):
     for n in ["MSP_T", "MC_entropy_T", "MC_mutual_info_T"]:
         c, r = risk_coverage_curve(err, s[n], 400)
         ax.plot(c, r, color=COL[n], lw=1.2, label=LAB[n].replace("MC-Dropout", "MC"))
+    c, r = risk_coverage_curve(err, s["MSP_raw"], 400)
+    ax.plot(c, r, color=COL["MSP_raw"], lw=0.9, ls=RAW_LS, label="MSP, uncalibrated")
     sv, pv = uncertainty_scores(d["val"]["logits"], d["val"]["mc_logits"], T)
     ev = (pv["det"].argmax(1) != d["val"]["y"]).astype(int)
     c, r = risk_coverage_curve(ev, sv["MSP_T"], 400)
@@ -184,6 +189,117 @@ def rc_compact(d, T, tau):
     save(fig, "fig_rc_compact")
 
 
+def confusion_e1(d, T):
+    """Row-normalised confusion matrix of the submitted E1 model (the submitted version's Fig. 2, normalised)."""
+    pr = softmax(d["test"]["logits"] / T, 1)
+    y, pred = d["test"]["y"], pr.argmax(1)
+    K = len(CLASSES)
+    cm = np.zeros((K, K))
+    for t, q in zip(y, pred):
+        cm[t, q] += 1
+    n = cm.sum(1)
+    cmn = cm / n[:, None]
+    fig, ax = plt.subplots(figsize=(3.4, 3.0))
+    ax.imshow(cmn, cmap="Blues", vmin=0, vmax=1)
+    for i in range(K):
+        for j in range(K):
+            v = cmn[i, j]
+            if v >= 0.005:
+                ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=5.6,
+                        color="white" if v > 0.55 else "black")
+    ax.set_xticks(range(K))
+    ax.set_xticklabels(CLASSES, fontsize=6.5, rotation=45)
+    ax.set_yticks(range(K))
+    ax.set_yticklabels([f"{c} ({int(k)})" for c, k in zip(CLASSES, n)], fontsize=6.5)
+    ax.set_xlabel("predicted class")
+    ax.set_ylabel("true class (test images)")
+    save(fig, "fig_confusion_E1")
+
+
+def seed_curves():
+    """Validation macro-F1 and validation loss per epoch for every run, with best and stored epochs marked."""
+    B = ROOT / "runs" / "repeat_batch_20261107" / "experiments"
+    logs42 = {"resnet50_weighted": "logs/train_resnet50.log", "resnet50_unweighted": "logs/e0_train.log",
+              "efficientnet_b3_weighted": "logs/train_efficientnet.log"}
+    conds = [("resnet50_weighted", "ResNet-50 E1"), ("resnet50_unweighted", "ResNet-50 E0"),
+             ("efficientnet_b3_weighted", "EfficientNet-B3 E1"), ("resnet50_weighted_r320", "ResNet-50 E1, 320 px"),
+             ("resnet50_unweighted_r320", "ResNet-50 E0, 320 px")]
+    cmap = plt.get_cmap("tab10")
+    seeds_all = [42, 43, 44, 45, 46]
+    fig, axes = plt.subplots(2, len(conds), figsize=(7.2, 3.6), sharex=True)
+    rows = []
+    for j, (cond, title) in enumerate(conds):
+        for s in seeds_all:
+            if s == 42 and cond in logs42:
+                h = parse_log(ROOT / logs42[cond]).rename(columns={"val_f1": "val_f1_macro"})
+                best = int(h.loc[h.val_f1_macro.idxmax(), "epoch"])
+            else:
+                fh = B / f"seed{s}_{cond}" / "training_history.csv"
+                if not fh.exists():
+                    continue
+                h = pd.read_csv(fh)
+                if not len(h):
+                    continue
+                best = int(h.loc[h.val_f1_macro.idxmax(), "epoch"])
+            # the checkpoint bug: when early stopping fires (patience 6) the weights of that epoch are stored;
+            # if training reaches its last epoch first, the stored weights are those of the best epoch
+            last = int(h.epoch.max())
+            triggered = last - best >= 6
+            stored = last if triggered else best
+            col = cmap(seeds_all.index(s))
+            for i, met in enumerate(["val_f1_macro", "val_loss"]):
+                ax = axes[i, j]
+                ax.plot(h.epoch, h[met], color=col, lw=0.9, label=f"seed {s}")
+                ax.plot(best, h.loc[h.epoch == best, met].iloc[0], "o", color=col, ms=3)
+                ax.plot(stored, h.loc[h.epoch == stored, met].iloc[0], "x", color=col, ms=4)
+            lmin = int(h.loc[h.val_loss.idxmin(), "epoch"])
+            vl = h.set_index("epoch").val_loss
+            rows.append({"condition": cond, "seed": s, "best_epoch": best, "last_epoch": last,
+                         "early_stop_triggered": triggered, "stored_epoch": stored, "min_val_loss_epoch": lmin,
+                         "val_loss_min": float(vl.min()), "val_loss_at_stored": float(vl.loc[stored])})
+        axes[0, j].set_title(title, fontsize=7)
+        for i in range(2):
+            axes[i, j].axvline(10.5, color="grey", ls="--", lw=0.5)
+            axes[i, j].grid(alpha=0.3)
+            axes[i, j].tick_params(labelsize=6)
+        axes[1, j].set_xlabel("epoch", fontsize=7)
+    axes[0, 0].set_ylabel("val. macro-F1", fontsize=7)
+    axes[1, 0].set_ylabel("val. loss", fontsize=7)
+    from matplotlib.lines import Line2D
+    hs = [Line2D([], [], color=cmap(k), lw=1) for k in range(len(seeds_all))] + \
+         [Line2D([], [], color="black", marker="o", ls="", ms=3), Line2D([], [], color="black", marker="x", ls="", ms=4),
+          Line2D([], [], color="grey", ls="--", lw=0.5)]
+    ls_ = [f"seed {s}" for s in seeds_all] + ["best val. macro-F1", "stored weights", "backbone unfrozen"]
+    plt.tight_layout()
+    fig.legend(hs, ls_, loc="lower center", ncol=8, frameon=False, bbox_to_anchor=(0.5, -0.06), fontsize=6)
+    save(fig, "fig_seed_curves")
+    pd.DataFrame(rows).to_csv(OUT / "figures" / "best_vs_stored_epochs.csv", index=False)
+
+
+def gradcam_mean():
+    """Mean Grad-CAM map over the 300 random test images (centre-bias check), with the central quarter marked."""
+    G_ = OUT / "gradcam"
+    panels = [("mean_map_conv3_paper.npy", "last bottleneck conv3 (as submitted)"),
+              ("mean_map_layer4_output.npy", "layer4 output")]
+    if not all((G_ / f).exists() for f, _ in panels):
+        return
+    from matplotlib.patches import Rectangle
+    fig, axes = plt.subplots(1, 2, figsize=(4.6, 2.3))
+    for ax, (f, t) in zip(axes, panels):
+        mmap = np.load(G_ / f)
+        h, w = mmap.shape[-2:]
+        mmap = mmap.reshape(h, w) / mmap.max()
+        im = ax.imshow(mmap, cmap="viridis", vmin=0, vmax=1)
+        ax.add_patch(Rectangle((w * 0.25, h * 0.25), w * 0.5, h * 0.5, fill=False, ec="white", ls="--", lw=0.8))
+        ax.set_title(t, fontsize=7)
+        ax.set_xticks([])
+        ax.set_yticks([])
+    cb = fig.colorbar(im, ax=axes, fraction=0.03, pad=0.02)
+    cb.set_label("mean map (relative)", fontsize=6.5)
+    cb.ax.tick_params(labelsize=6)
+    save(fig, "fig_gradcam_mean")
+
+
 def main():
     d = load_dump(PAPER_RUNS["resnet50_E1"])
     T = fit_temperature(d["val"]["logits"], d["val"]["y"])
@@ -195,6 +311,9 @@ def main():
     reliability(d0, fit_temperature(d0["val"]["logits"], d0["val"]["y"]), "fig_reliability_resnet50_E0")
     training_curves()
     classwise_selective(d, T, tau)
+    confusion_e1(d, T)
+    seed_curves()
+    gradcam_mean()
     print("done ->", F)
 
 

@@ -1022,6 +1022,16 @@ def extras():
         m("NrunsRes", int(res.sum()))
         eff = d.model == "effnetb3_E1"
         m("MCvsMSPeffMax", f"{diff[eff].abs().max():.3f}")
+    ef = OUT / "figures" / "best_vs_stored_epochs.csv"
+    if ef.exists():
+        e = pd.read_csv(ef)
+        e["ratio"] = e.val_loss_at_stored / e.val_loss_min
+        m("SeedRunsN", len(e))
+        m("SeedBestAfterMin", int((e.best_epoch > e.min_val_loss_epoch).sum()))
+        m("SeedMinLossEpLo", int(e.min_val_loss_epoch.min()))
+        m("SeedMinLossEpHi", int(e.min_val_loss_epoch.max()))
+        m("SeedLossRatioLo", f"{e.ratio.min():.2f}")
+        m("SeedLossRatioHi", f"{e.ratio.max():.2f}")
     vf = OUT / "artefacts" / "vignette_summary.csv"
     pf = OUT / "artefacts" / "vignette_prevalence_by_source.csv"
     if vf.exists() and pf.exists():
