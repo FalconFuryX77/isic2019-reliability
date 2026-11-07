@@ -72,11 +72,12 @@ def write(name, body):
 def tabular(caption, label, header, rows, colspec, star=False, note=None, size="\\footnotesize"):
     env = "table*" if star else "table"
     lines = [f"\\begin{{{env}}}[{'!t' if star else '!htbp'}]", "\\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}", size,
-             "\\setlength{\\tabcolsep}{3pt}", f"\\begin{{tabular}}{{{colspec}}}", "\\toprule",
-             " & ".join(header) + " \\\\", "\\midrule"]
+             "\\setlength{\\tabcolsep}{3pt}", f"\\begin{{tabular}}{{{colspec}}}", "\\hline",
+             " & ".join(header) + " \\\\", "\\hline"]
+    # plain \hline rules, as in the IEEE conference template and the IEEEtran HOWTO (no booktabs)
     for r in rows:
-        lines.append("\\midrule" if r == "MIDRULE" else " & ".join(tminus(c) for c in r) + " \\\\")
-    lines += ["\\bottomrule", "\\end{tabular}"]
+        lines.append("\\hline" if r == "MIDRULE" else " & ".join(tminus(c) for c in r) + " \\\\")
+    lines += ["\\hline", "\\end{tabular}"]
     if note:
         lines.append(f"\\par\\vspace{{2pt}}\\parbox{{\\linewidth}}{{\\scriptsize {note}}}")
     lines.append(f"\\end{{{env}}}")
