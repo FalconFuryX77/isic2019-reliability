@@ -42,6 +42,12 @@ def refresh(new_jobs):
     for script in ["analyze_multiseed.py", "build_pdfs.py", "package_paper.py", "build_github_repo.py"]:
         rc, out = run([PY, str(ROOT / "scripts" / "revision" / script)])
         log(f"{script}: exit {rc}; " + " | ".join(out.splitlines()[-3:]))
+        if script == "build_pdfs.py" and (rc != 0 or "BUILD OK" not in out):
+            (ROOT / "results" / "revision" / "BUILD_FAILED").write_text(out[-4000:], encoding="utf-8")
+            log("PDF build failed -> not packaging or pushing; see results/revision/BUILD_FAILED")
+            return
+        if script == "build_pdfs.py":
+            (ROOT / "results" / "revision" / "BUILD_FAILED").unlink(missing_ok=True)
         if script == "build_github_repo.py":
             leaks = [l for l in out.splitlines() if l.startswith("leaks:")]
             clean = leaks and ("none" in leaks[0] or leaks[0].strip() == "leaks: ['scripts\\\\revision\\\\build_github_repo.py']")

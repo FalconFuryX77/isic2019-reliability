@@ -934,7 +934,7 @@ def ranking():
     name = {"resnet50_E0": "R50-E0", "resnet50_E1": "R50-E1", "effnetb3_E1": "B3-E1"}
     rows = []
     for met, lab, how in dims:
-        g = s[s.metric == met].set_index("model")["mean"]
+        g = s[(s.metric == met) & s.model.isin(list(name))].set_index("model")["mean"]  # 224 px models only
         if not len(g):
             continue
         order = g.sort_values(ascending=(how == "min"))
