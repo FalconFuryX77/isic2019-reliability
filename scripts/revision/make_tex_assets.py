@@ -769,7 +769,7 @@ def compact():
         "cross-entropy, E0 with post-hoc logit adjustment (E0+LA), EfficientNet-B3 (B3-E1)"
         + (" and ResNet-50 at $320\\times320$ px" if any(c[0].endswith("r320") for c in cols) else "")
         + ". Temperatures, thresholds and logit adjustment use validation data only. Last column: mean paired "
-        "per-seed difference (paired $t$-test $p$). $^\\dagger$Official ISIC 2019 test set (6,191 known-class and "
+        "per-seed difference between E1 and E0 at $224\\times224$ px (paired $t$-test $p$). $^\\dagger$Official ISIC 2019 test set (6,191 known-class and "
         "2,047 UNK images), never used during development.",
         "tab:main", hdr, rows, "l" + "c" * (len(cols) + 1), star=True))
     # paired LA vs E1 / LA vs E0
@@ -915,7 +915,40 @@ def r320():
             m("RtwoDiffBalAcc", f"{(a.test_balanced_accuracy - b.test_balanced_accuracy).mean():+.3f}")
             m("RtwoDiffAURC", f"{(a.test_AURC_MSP - b.test_AURC_MSP).mean():+.3f}")
             m("RtwoDiffNLL", f"{(a.test_NLL_afterT - b.test_NLL_afterT).mean():+.3f}")
+            m("RtwoDiffAUROC", f"{(a.test_AUROC_MSP - b.test_AUROC_MSP).mean():+.3f}")
+            m("RtwoDiffOOD", f"{(a.off_OOD_AUROC_MSP - b.off_OOD_AUROC_MSP).mean():+.3f}")
             m("RtwoNpair", len(sd))
+            bal = [f"{v:+.3f}" for v in (a.test_balanced_accuracy - b.test_balanced_accuracy)]
+            m("RtwoBalAccSeeds", ", ".join(bal[:-1]) + " and " + bal[-1] if len(bal) > 1 else bal[0])
+            cost = ((a.test_NLL_afterT > b.test_NLL_afterT) & (a.test_AURC_MSP > b.test_AURC_MSP)
+                    & (a.test_AUROC_MSP < b.test_AUROC_MSP) & (a.off_OOD_AUROC_MSP < b.off_OOD_AUROC_MSP))
+            m("RtwoCostN", int(cost.sum()))
+            m("RtwoZeroBalAcc", b.test_balanced_accuracy.mean())
+            m("RtwoZeroOffBal", b.off_bal_acc_known.mean())
+            # 320 px versus 224 px for the same seeds
+            for mk, tag, sub in [("resnet50_E0", "Zero", b), ("resnet50_E1", "One", a)]:
+                base = d[d.model == mk].set_index("seed").loc[sd]
+                m(f"RtwoRes{tag}BalAcc", f"{(sub.test_balanced_accuracy - base.test_balanced_accuracy).mean():+.3f}")
+                m(f"RtwoRes{tag}AURC", f"{(sub.test_AURC_MSP - base.test_AURC_MSP).mean():+.3f}")
+                m(f"RtwoRes{tag}ECE", f"{(sub.test_ECE_afterT - base.test_ECE_afterT).mean():+.3f}")
+            # post-hoc logit adjustment of the 320 px E0 model versus 320 px E1
+            if "test_LA_balanced_accuracy" in b:
+                m("RtwoLABalAcc", b.test_LA_balanced_accuracy.mean())
+                for met, nm in [("ECE_afterT", "ECE"), ("AUROC_MSP", "AUROC"), ("AURC_MSP", "AURC")]:
+                    m(f"RtwoLAvsOne{nm}", f"{(b[f'test_LA_{met}'] - a[f'test_{met}']).mean():+.3f}")
+                txt += (
+                    "\nWith \\RtwoNpair{} paired seeds this replication is small, so it is a consistency check rather "
+                    "than a separate result. "
+                    "Relative to the same seeds at $224\\times224$, the higher resolution changed balanced accuracy by "
+                    "\\RtwoResZeroBalAcc{} (E0) and \\RtwoResOneBalAcc{} (E1) and AURC by \\RtwoResZeroAURC{} and "
+                    "\\RtwoResOneAURC{}, while the calibrated ECE changed by \\RtwoResZeroECE{} and \\RtwoResOneECE. "
+                    "The reliability cost of class weighting recurred in \\RtwoCostN{} of \\RtwoNpair{} seeds: after "
+                    "temperature scaling, E1 had a higher NLL (\\RtwoDiffNLL), a larger AURC (\\RtwoDiffAURC), a lower "
+                    "error AUROC (\\RtwoDiffAUROC) and a lower UNK detection AUROC on the official test set "
+                    "(\\RtwoDiffOOD) than E0. Its balanced-accuracy gain was not consistent (per seed "
+                    "\\RtwoBalAccSeeds). Logit adjustment of the $320\\times320$ E0 model reached a balanced accuracy "
+                    "of \\RtwoLABalAcc{} (E1: \\RtwoOneBalAcc), with a lower ECE (\\RtwoLAvsOneECE) and a higher error "
+                    "AUROC (\\RtwoLAvsOneAUROC) than E1 but a similar AURC (\\RtwoLAvsOneAURC).\n")
     out.write_text(txt, encoding="utf-8")
 
 
