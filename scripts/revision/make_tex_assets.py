@@ -192,7 +192,8 @@ def seed42():
     lab = {"MSP_T": "MSP ($1-\\max_k p_k$), calibrated", "MSP_raw": "MSP, uncalibrated",
            "softmax_entropy_T": "Softmax entropy, calibrated", "MC_entropy_T": "MC predictive entropy (paper)",
            "MC_expected_entropy_T": "MC expected entropy (aleatoric)", "MC_mutual_info_T": "MC mutual information (epistemic)",
-           "MC_variance_T": "MC predictive variance", "MC_MSP_T": "MC mean-probability MSP"}
+           "MC_variance_T": "MC predictive variance", "MC_MSP_T": "MC mean-probability MSP",
+           "softmax_entropy_raw": "Softmax entropy, uncalibrated", "MC_entropy_raw": "MC predictive entropy, uncalibrated"}
     rows = []
     for sc in lab:
         r = e[(e.model == "resnet50_E1") & (e.score == sc)].iloc[0]
@@ -222,6 +223,12 @@ def seed42():
             m(f"Diff{nm}CI", f"[{dl.ci_low:+.3f}, {dl.ci_high:+.3f}]")
     r = e[(e.model == "resnet50_E1") & (e.score == "MC_entropy_T")].iloc[0]
     m("AUROCMCentPaper", r.AUROC_own_errors)
+    r = e[(e.model == "resnet50_E1") & (e.score == "MC_entropy_raw")].iloc[0]
+    m("AUROCMCentRaw", r.AUROC_det_errors)
+    m("AUROCMCentRawOwn", r.AUROC_own_errors)
+    dl = dd.loc["MC_entropy_raw"]
+    m("DiffMCentRaw", f"{dl.diff_vs_MSP_T:+.3f}")
+    m("DiffMCentRawCI", f"[{dl.ci_low:+.3f}, {dl.ci_high:+.3f}]")
     cor = pd.read_csv(S42 / "E_score_correlations_test.csv").set_index("model")
     m("RhoMSPMCent", cor.loc["resnet50_E1", "spearman_MSP_vs_MCentropy"], 2)
     m("RhoMSPMI", cor.loc["resnet50_E1", "spearman_MSP_vs_MI"], 2)
@@ -300,10 +307,13 @@ def seed42():
     # conformal
     cf = pd.read_csv(S42 / "G_conformal_test.csv")
     rows = []
+    ccw = pd.read_csv(S42 / "G_conformal_classwise_test.csv")
     for _, r in cf[cf.model == "resnet50_E1"].iterrows():
+        q = ccw[(ccw.model == "resnet50_E1") & (ccw.method == r.method) & (np.isclose(ccw.alpha, r.alpha))]
+        worst = f" ({q.loc[q.coverage.idxmin(), 'class']})" if len(q) else ""
         rows.append([{"LAC": "LAC", "APS": "APS", "classwise_LAC": "Class-cond.\\ LAC"}[r.method], f"{1 - r.alpha:.2f}",
                      f3(r.coverage), f3(r.avg_set_size), f3(r.frac_singleton), f3(r.acc_on_singletons),
-                     f3(r.MEL_coverage), f3(r.min_class_coverage)])
+                     f3(r.MEL_coverage), f3(r.min_class_coverage) + worst])
     write("tab_conformal", tabular(
         "Split-conformal prediction sets (ResNet-50 E1, seed 42; calibration set = validation, evaluation = internal test).",
         "tab:conformal", ["Method", "$1-\\alpha$", "Coverage", "Set size", "Singleton", "Acc.\\ singl.", "MEL cov.",
@@ -477,8 +487,9 @@ def official():
         "Untouched evaluation on the official ISIC 2019 test set (8,238 images; 2,047 UNK). Temperature, threshold "
         "($\\tau$ for 85\\% validation coverage) and conformal quantile come from the internal validation split. "
         "Acc./Bal.\\ acc./ECE on the 6,191 known-class images; OOD = UNK vs.\\ known AUROC; Cov./Sel.\\ acc.\\ on known classes; "
-        "UNK acc.: fraction of UNK images accepted; BA$_9$: 9-class balanced accuracy without abstention and with "
-        "rejected cases labelled UNK; Conf.: LAC coverage at 90\\% nominal.",
+        "OOD MC-H: MC-Dropout predictive entropy; UNK acc.: fraction of UNK images accepted; BA$_9$: challenge-style "
+        "9-class balanced accuracy when UNK is never predicted; BA$_9$ rej.: the same with rejected images labelled "
+        "UNK; Conf.: LAC coverage on known classes at 90\\% nominal.",
         "tab:official", ["Model", "Acc.", "Bal.\\ acc.", "ECE", "ECE$_T$", "OOD MSP", "OOD MC-H", "OOD MI", "Cov.",
                          "Sel.\\ acc.", "UNK acc.", "BA$_9$", "BA$_9$ rej.", "Conf."], rows, "l" + "c" * 13,
         star=True, size="\\scriptsize"))
@@ -499,6 +510,7 @@ def official():
     m("OffSelAcc", ss.accepted_acc_known)
     m("OffAccAll", ss.overall_acc_known)
     m("OffUNKacc", ss.UNK_accepted_frac)
+    m("OffUNKaccPct", 100 * ss.UNK_accepted_frac, 1)
     m("OffMELall", ss.MEL_sens_all)
     m("OffMELacc", ss.MEL_sens_accepted)
     cc = ch[(ch.model == "resnet50_E1") & (ch.subset == sub)].set_index("rule")
@@ -638,6 +650,14 @@ def derived():
     acc = p.max(1) >= tau
     m("SelTestCovPct", 100 * acc.mean(), 1)
     m("SelTestAccPct", 100 * (pred[acc] == y[acc]).mean(), 1)
+    m("EOneTestBalAccS", float(np.mean([(pred[y == c] == c).mean() for c in range(len(CLASSES))])))
+    # the submitted version applied the rounded threshold 0.43; the revision uses the unrounded validation value
+    sub = p.max(1) >= 0.43
+    m("SubNacc", int(sub.sum()))
+    m("SubNrej", int((~sub).sum()))
+    m("SubNcorrRej", int((pred[~sub] == y[~sub]).sum()))
+    m("SubCov", sub.mean(), 3)
+    m("SubAcc", (pred[sub] == y[sub]).mean(), 3)
     # per-class with Wilson CI on recall
     rows = []
     for c, cl in enumerate(CLASSES):
@@ -797,7 +817,8 @@ def compact():
                          ("resnet50_E0", "temperature", "E0, temperature")]:
         r = cv[(cv.model == mk) & (cv.variant == var)].iloc[0]
         rows.append([lab, f3(r.ECE), f3(r.ECE_classwise), f3(r.NLL), f3(r.balanced_accuracy)])
-    rows.append(["E0+LA, temperature", f3(e0s42.test_LA_ECE_afterT), "--", f3(e0s42.test_LA_NLL_afterT),
+    rows.append(["E0+LA, temperature", f3(e0s42.test_LA_ECE_afterT),
+                 f3(e0s42.test_LA_cwECE) if "test_LA_cwECE" in e0s42 else "--", f3(e0s42.test_LA_NLL_afterT),
                  f3(e0s42.test_LA_balanced_accuracy)])
     write("tab_calib_compact", tabular(
         "Calibration on the internal test split (seed 42; all maps fitted on validation). cwECE: class-wise ECE.",
@@ -841,7 +862,8 @@ def compact():
         "Error detection on the internal test split (Err.: AUROC; AURC) and UNK detection on the official test set "
         "(UNK: AUROC) for ResNet-50 E1, seed 42. $\\Delta$: paired AUROC difference to MSP; $^{*}$95\\% "
         "lesion-cluster bootstrap CI excludes 0. MC: head MC-Dropout; MI: mutual information (epistemic part); "
-        "Ens.\\ ($k$): ensemble of $k$ seeds.",
+        "all scores use temperature-scaled logits (each MC pass is scaled before averaging). Ens.\\ ($k$): average of "
+        "the $k$ ResNet-50 E1 seed models at $224\\times224$ px.",
         "tab:scores", ["Score", "Err.", "$\\Delta$", "AURC", "UNK"], rows, "lcccc"))
     # threshold transfer table (seed 42 E1): internal val -> internal test -> official test
     from src.evaluation.selective import _threshold_for_coverage
@@ -904,9 +926,11 @@ def r320():
     m("RtwoOneAUROCmc", e1.test_AUROC_MC_entropy_deterr.mean())
     m("RtwoOneOffBal", e1.off_bal_acc_known.mean())
     m("RtwoN", len(e1))
+    seeds = sorted(set(e1.seed))
+    m("RtwoSeeds", " and ".join(str(s) for s in seeds) if len(seeds) <= 2 else ", ".join(map(str, seeds)))
     txt = ("\\section{Higher-Resolution Replication}\n\\label{sec:s-r320}\n"
            "To test whether the conclusions depend on the $224\\times224$ input, ResNet-50 E0 and E1 were retrained at "
-           "$320\\times320$ with otherwise identical settings (Table~\\ref{tab:r320}).\n\n" + tab)
+           "$320\\times320$ (seeds \\RtwoSeeds) with otherwise identical settings (Table~\\ref{tab:r320}).\n\n" + tab)
     if len(e0):
         sd = sorted(set(e1.seed) & set(e0.seed))
         if sd:
@@ -978,6 +1002,62 @@ def ranking():
         "tab:ranking", ["Dimension", "R50-E0", "R50-E1", "B3-E1", "Best"], rows, "lcccc"))
 
 
+def extras():
+    """Numbers added after the independent audit of the response: per-seed validation metrics used for the
+    architecture choice, MC entropy vs MSP across all runs, and the dermoscopic-vignette check."""
+    f = MS / "per_run_metrics.csv"
+    if f.exists():
+        d = pd.read_csv(f)
+        d = d[d.protocol == "paper"]
+        a = d[d.model == "resnet50_E1"].set_index("seed")
+        b = d[d.model == "effnetb3_E1"].set_index("seed")
+        sd = sorted(set(a.index) & set(b.index))
+        for met, nm in [("val_macro_f1", "Fone"), ("val_balanced_accuracy", "Bal")]:
+            diffs = [f"{v:+.3f}" if round(v, 3) != 0 else "0.000" for v in (a.loc[sd, met] - b.loc[sd, met])]
+            m(f"SelVal{nm}Diffs", ", ".join(diffs[:-1]) + " and " + diffs[-1])
+        m("SelValSeeds", ", ".join(str(s) for s in sd[:-1]) + " and " + str(sd[-1]))
+        diff = d.test_AUROC_MC_entropy_deterr - d.test_AUROC_MSP
+        res = d.model.str.startswith("resnet50")
+        m("MCbelowMSPres", int((diff[res] < 0).sum()))
+        m("NrunsRes", int(res.sum()))
+        eff = d.model == "effnetb3_E1"
+        m("MCvsMSPeffMax", f"{diff[eff].abs().max():.3f}")
+    vf = OUT / "artefacts" / "vignette_summary.csv"
+    pf = OUT / "artefacts" / "vignette_prevalence_by_source.csv"
+    if vf.exists() and pf.exists():
+        v = pd.read_csv(vf)
+        prev = pd.read_csv(pf).set_index("source")
+        prev.columns = [c.strip() for c in prev.columns]
+        m("VigBCN", 100 * prev.loc["BCN_20000", "True"], 0)
+        m("VigHAM", 100 * prev.loc["HAM10000", "True"], 0)
+        m("VigMSK", 100 * prev.loc["MSK", "True"], 0)
+        per = pd.read_csv(OUT / "artefacts" / "vignette_per_image.csv")
+        m("VigOff", 100 * per[per.split == "official_test"].vignette.mean(), 0)
+        rows = []
+        tag = {"internal test, all sources": "All", "internal test, BCN_20000 only": "BCN",
+               "official test, known classes": "Off"}
+        for scope in tag:
+            for flag in [True, False]:
+                r = v[(v.scope == scope) & (v.vignette == flag)].iloc[0]
+                yn = "yes" if flag else "no"
+                rows.append([scope.replace("BCN_20000", "BCN\\_20000") if flag else "", yn, str(int(r.n)),
+                             f3(r.accuracy), f3(r.ECE_T), f3(r.coverage), f3(r.accepted_accuracy),
+                             f3(r.error_AUROC_MSP), f3(r.UNK_share) if scope.startswith("official") else "--"])
+                k = tag[scope] + ("Yes" if flag else "No")
+                m(f"Vig{k}Acc", r.accuracy)
+                m(f"Vig{k}AUROC", r.error_AUROC_MSP)
+                m(f"Vig{k}Cov", r.coverage)
+                if scope.startswith("official"):
+                    m(f"Vig{k}UNK", 100 * r.UNK_share, 0)
+        write("tab_vignette", tabular(
+            "ResNet-50 E1 (seed 42) on images with and without a dark dermatoscope vignette (automatically detected: "
+            "at least 3 of 4 corner patches with mean grey level below 35/255). Temperature and $\\tau$ (85\\% "
+            "validation coverage) from validation. UNK share: fraction of UNK images among all official-test images "
+            "in that group.", "tab:vignette",
+            ["Images", "Vign.", "$n$", "Acc.", "ECE$_T$", "Cov.", "Sel.\\ acc.", "Err.\\ AUROC", "UNK share"], rows,
+            "lcrcccccc"))
+
+
 def main():
     seed42()
     multiseed()
@@ -989,6 +1069,7 @@ def main():
     tta()
     compact()
     r320()
+    extras()
     lines = ["% AUTO-GENERATED by scripts/revision/make_tex_assets.py -- do not edit by hand"]
     for k, v in sorted(macros.items()):
         assert k.isalpha(), k

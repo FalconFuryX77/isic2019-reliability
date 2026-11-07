@@ -82,6 +82,7 @@ def run_metrics(r):
         ea = (pa.argmax(1) != y).astype(int)
         out.update({"test_LA_balanced_accuracy": cm["balanced_accuracy"], "test_LA_accuracy": cm["accuracy"],
                     "test_LA_macro_f1": cm["macro_f1"], "test_LA_ECE_afterT": ca["ECE"], "test_LA_NLL_afterT": ca["NLL"],
+                    "test_LA_cwECE": ca["ECE_classwise"], "test_LA_Brier": ca["Brier"],
                     "test_LA_AUROC_MSP": roc_auc_score(ea, 1 - pa.max(1)), "test_LA_AURC_MSP": aurc(ea, 1 - pa.max(1))})
         oa = softmax((d["official_test"]["logits"] + lw) / T_a, 1)
         yo_ = d["official_test"]["y"]
