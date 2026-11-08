@@ -2,7 +2,7 @@
 """Regenerate assets and compile main.pdf (pdfLaTeX + BibTeX, as on Overleaf; IEEEtran conference class),
 supplementary.pdf and response_to_reviewers.pdf (Tectonic).
 
-Checks the venue constraints: main paper <= 8 pages and <= 14 distinct citations.
+Checks the venue constraint: main paper <= 8 pages (the distinct citations are counted for information).
 The response letter uses xr (\\externaldocument{main}, [S-]{supplementary}); the two .aux files are
 staged next to the sources while it compiles. PDFs end up in paper_revision/build/.
 """
@@ -89,8 +89,9 @@ def main():
     cites = set()
     for g in re.findall(r"\\cite\{([^}]+)\}", (P / "main.tex").read_text(encoding="utf-8")):
         cites |= {k.strip() for k in g.split(",")}
-    print(f"main.pdf pages = {n_pages} (limit 8); citations = {len(cites)} (limit 14)")
-    ok &= n_pages <= 8 and len(cites) <= 14
+    # INCOWOCO limits pages (8), not references
+    print(f"main.pdf pages = {n_pages} (limit 8); citations = {len(cites)}")
+    ok &= n_pages <= 8
     # unresolved references in logs
     for log in ["main.log", "supplementary.log", "response_to_reviewers.log"]:
         txt = (B / log).read_text(encoding="utf-8", errors="ignore") if (B / log).exists() else ""

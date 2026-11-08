@@ -46,7 +46,8 @@ def main(original):
     (tmp / "old.tex").write_text(old, encoding="utf-8")
     (tmp / "new.tex").write_text(new, encoding="utf-8")
     bib = (PR / "references_main.bib").read_text(encoding="utf-8")
-    extra = bib_entries((PR / "references.bib").read_text(encoding="utf-8"), set(REMOVED))
+    have = set(re.findall(r"@\w+\{([^,]+),", bib))
+    extra = bib_entries((PR / "references.bib").read_text(encoding="utf-8"), set(REMOVED) - have)
     (tmp / "references_diff.bib").write_text(bib + "\n\n" + "\n\n".join(extra) + "\n", encoding="utf-8")
     for f in ["IEEEtran.cls", "IEEEtran.bst"]:
         shutil.copy2(PR / f, tmp / f)
