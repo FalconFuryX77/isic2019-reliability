@@ -120,7 +120,7 @@ def seed42():
         rows.append([lab, f"{e0[0]:.3f} [{e0[1]:.3f}, {e0[2]:.3f}]", f"{e1[0]:.3f} [{e1[1]:.3f}, {e1[2]:.3f}]",
                      f"{d[0]:+.3f} [{d[1]:+.3f}, {d[2]:+.3f}]"])
     write("tab_seed42_ci", tabular(
-        "Seed-42 models (as submitted) on the internal test split with 95\\% lesion-cluster bootstrap intervals "
+        "Seed-42 models on the internal test split with 95\\% lesion-cluster bootstrap intervals "
         "(2,000 resamples of 1,399 lesion groups). The last column is the paired difference.",
         "tab:seed42ci", ["Metric", "E0 (plain CE)", "E1 (weighted CE)", "E1 $-$ E0"], rows, "lccc", star=True))
     for metric, nm in [("balanced_accuracy", "BalAcc"), ("accuracy", "Acc"), ("macro_f1", "MacroFone"),
@@ -379,7 +379,7 @@ def multiseed():
            f"E1 ResNet-50 ($n$={nseeds.get('resnet50_E1', 0)})", f"E1 EffNet-B3 ($n$={nseeds.get('effnetb3_E1', 0)})",
            "E1$-$E0 paired"]
     write("tab_multiseed", tabular(
-        "Mean $\\pm$ SD over independently trained seeds (seed 42 = submitted run; further seeds retrained with the "
+        "Mean $\\pm$ SD over independently trained seeds (seed 42 = the run analysed in detail; further seeds trained with the "
         "identical protocol). All post-hoc maps and thresholds fitted on validation. Last column: mean per-seed "
         "difference, with (number of seeds where E1 $>$ E0 / seeds paired, paired $t$-test $p$). "
         "$^\\dagger$Official ISIC 2019 test "
@@ -1123,6 +1123,11 @@ def minimal():
     tau = 0.43
     acc = p.max(1) >= tau
     m("SubValCov", (pv >= tau).mean())
+    # what the stated rule (largest tau with validation coverage >= 85%) gives before rounding
+    from src.evaluation.selective import _threshold_for_coverage
+    tau_rule = float(_threshold_for_coverage(pv, 0.85))
+    m("RuleTau", f"{tau_rule:.3f}")
+    m("RuleValCov", (pv >= tau_rule).mean())
     m("SubBalAccAcc", float(np.mean([(pred[(y == k) & acc] == k).mean() for k in range(len(CLASSES))])))
     for k, cl in enumerate(CLASSES):
         m(f"SubCov{cl}", acc[y == k].mean())
