@@ -1069,6 +1069,134 @@ def extras():
             "lcrcccccc"))
 
 
+def write_body(name, table_tex):
+    """Write only the tabular part (font size to \\end{tabular}) so main.tex can hold the caption."""
+    lines = table_tex.splitlines()
+    start = next(i for i, l in enumerate(lines) if l.startswith("\\footnotesize") or l.startswith("\\scriptsize"))
+    end = next(i for i, l in enumerate(lines) if l.startswith("\\end{tabular}"))
+    (G / f"{name}.tex").write_text("\n".join(lines[start:end + 1]) + "\n", encoding="utf-8")
+
+
+def minimal():
+    """Numbers and the two new tables for the minimal revision of the submitted paper (original text kept;
+    only reviewer-requested additions). Selective numbers use the submitted threshold tau = 0.43."""
+    from scipy import stats as st
+    # seed-42 paired differences missing from seed42()
+    c = pd.read_csv(S42 / "C_bootstrap_ci_test.csv")
+    for met, nm in [("roc_auc_macro_ovr", "Roc"), ("ECE_afterT", "ECEafter")]:
+        r = c[(c.model == "E1_minus_E0") & (c.metric == met)].iloc[0]
+        m(f"MinDiff{nm}", f"{r.point:+.3f}")
+        m(f"MinDiff{nm}CI", f"[{r.ci_low:+.3f}, {r.ci_high:+.3f}]")
+    for mk, tag in [("resnet50_E0", "Zero"), ("resnet50_E1", "One")]:
+        m(f"MinAURC{tag}", c[(c.model == mk) & (c.metric == "AURC_MSP")].iloc[0].point)
+    d = pd.read_csv(MS / "per_run_metrics.csv")
+    d = d[d.protocol == "paper"]
+    a = d[d.model == "resnet50_E1"].set_index("seed")
+    b = d[d.model == "resnet50_E0"].set_index("seed")
+    sd = sorted(set(a.index) & set(b.index))
+    diff = (a.loc[sd, "test_roc_auc_macro_ovr"] - b.loc[sd, "test_roc_auc_macro_ovr"]).values
+    m("MSDiffRoc", f"{diff.mean():+.3f}")
+    m("MSDiffRocP", fp(st.ttest_1samp(diff, 0).pvalue))
+    m("MSDiffRocPos", f"{int((diff > 0).sum())}/{len(diff)}")
+    # calibration table values (seed 42, test split; maps fitted on validation)
+    cv = pd.read_csv(S42 / "D_calibration_variants_test.csv")
+    for mk, var, tag in [("resnet50_E1", "temperature", "OneT"), ("resnet50_E0", "temperature", "ZeroT"),
+                         ("effnetb3_E1", "temperature", "EffT"), ("resnet50_E1", "vector_scaling", "OneVS")]:
+        r = cv[(cv.model == mk) & (cv.variant == var)].iloc[0]
+        m(f"Cal{tag}ece", r.ECE)
+        m(f"Cal{tag}cw", r.ECE_classwise)
+        m(f"Cal{tag}nll", r.NLL)
+        m(f"Cal{tag}brier", r.Brier)
+        m(f"Cal{tag}bal", r.balanced_accuracy)
+    e0 = b.loc[42]
+    m("CalLAece", e0.test_LA_ECE_afterT)
+    m("CalLAcw", e0.test_LA_cwECE)
+    m("CalLAnll", e0.test_LA_NLL_afterT)
+    m("CalLAbrier", e0.test_LA_Brier)
+    m("CalLAbal", e0.test_LA_balanced_accuracy)
+    # selective prediction at the submitted threshold
+    dd = load_dump(PAPER_RUNS["resnet50_E1"])
+    T = fit_temperature(dd["val"]["logits"], dd["val"]["y"])
+    pv = softmax(dd["val"]["logits"] / T, 1).max(1)
+    p = softmax(dd["test"]["logits"] / T, 1)
+    y, pred = dd["test"]["y"], p.argmax(1)
+    tau = 0.43
+    acc = p.max(1) >= tau
+    m("SubValCov", (pv >= tau).mean())
+    m("SubBalAccAcc", float(np.mean([(pred[(y == k) & acc] == k).mean() for k in range(len(CLASSES))])))
+    for k, cl in enumerate(CLASSES):
+        m(f"SubCov{cl}", acc[y == k].mean())
+    mel = CLASSES.index("MEL")
+    m("SubMELacc", (pred[(y == mel) & acc] == mel).mean())
+    m("SubMELrej", int(((y == mel) & ~acc).sum()))
+    split = pd.read_csv(ROOT / "data" / "splits" / "test.csv")
+    groups = split.lesion_id.fillna(split.image_id).values
+    ug = np.unique(groups)
+    idx_of = {g: np.where(groups == g)[0] for g in ug}
+    rng = np.random.default_rng(0)
+    boots = []
+    for _ in range(2000):
+        ii = np.concatenate([idx_of[g] for g in rng.choice(ug, size=len(ug), replace=True)])
+        aa = acc[ii]
+        boots.append((pred[ii][aa] == y[ii][aa]).mean())
+    m("SubAccCI", f"[{np.percentile(boots, 2.5):.3f}, {np.percentile(boots, 97.5):.3f}]")
+    o = dd["official_test"]
+    po = softmax(o["logits"] / T, 1)
+    known = o["y"] < 8
+    ao = po.max(1) >= tau
+    m("SubOffUNKaccPct", 100 * ao[~known].mean(), 1)
+    m("SubOffCovKnown", ao[known].mean())
+    m("SubOffAccKnown", (po.argmax(1)[known & ao] == o["y"][known & ao]).mean())
+    # new Table: per-class counts and per-class results of E1 (seed 42)
+    cnt = {s: pd.read_csv(ROOT / "data" / "splits" / f"{s}.csv").label.value_counts()
+           for s in ["train", "validation", "test"]}
+    pc = pd.read_csv(S42 / "A_per_class_metrics.csv")
+    pc = pc[(pc.model == "resnet50_E1") & (pc.split == "test")].set_index("class")
+    rows = []
+    for cl in CLASSES:
+        r = pc.loc[cl]
+        n = int(r.support)
+        k = int(round(r.recall * n))
+        lo, hi = wilson(k, n)
+        rows.append([cl, str(int(cnt["train"].get(cl, 0))), str(int(cnt["validation"].get(cl, 0))),
+                     str(int(cnt["test"].get(cl, 0))), f"{r.precision:.2f}", f"{r.recall:.2f} [{lo:.2f}, {hi:.2f}]",
+                     f"{r.f1:.2f}"])
+    rows.append(["Total", str(int(cnt["train"].sum())), str(int(cnt["validation"].sum())),
+                 str(int(cnt["test"].sum())), "", "", ""])
+    tab_pc = tabular(
+        "Images per class in the lesion-grouped split and per-class test results of the class-weighted ResNet-50 "
+        "(E1, seed 42; recall with 95\\% Wilson interval).",
+        "tab:perclass", ["Class", "Train", "Val.", "Test", "Prec.", "Recall [95\\% CI]", "F1"], rows, "lrrrccc")
+    write("tab_min_perclass", tab_pc)
+    write_body("tab_min_perclass_body", tab_pc)
+    # new Table: error- and unknown-lesion detection by score (requested baselines; TTA left to the supplement)
+    e = pd.read_csv(S42 / "E_uncertainty_scores_test.csv")
+    e = e[e.model == "resnet50_E1"].set_index("score")
+    dl = pd.read_csv(S42 / "E_auroc_diff_vs_MSP_resnet50_E1.csv").set_index("score")
+    oo = pd.read_csv(OFF / "ood_unk_detection.csv")
+    oo = oo[(oo.model == "resnet50_E1") & (oo.subset == "all_8238")].set_index("score")["AUROC_UNK_vs_known"]
+    rows = []
+    for sc, lab in [("MSP_T", "MSP"), ("softmax_entropy_T", "Softmax entropy"),
+                    ("MC_entropy_T", "MC entropy"), ("MC_expected_entropy_T", "MC exp.\\ entropy"),
+                    ("MC_mutual_info_T", "MC MI")]:
+        r = e.loc[sc]
+        dcell = "--" if sc == "MSP_T" else f"{dl.loc[sc, 'diff_vs_MSP_T']:+.3f} [{dl.loc[sc, 'ci_low']:+.3f}, {dl.loc[sc, 'ci_high']:+.3f}]"
+        rows.append([lab, f3(r.AUROC_det_errors), dcell, f3(r.AURC_det), f3(oo[sc]) if sc in oo else "--"])
+    en = pd.read_csv(MS / "deep_ensembles.csv")
+    en = en[en.ensemble.str.startswith("resnet50_E1_paper")].iloc[0]
+    k = int(en.n_members)
+    rows.append([f"Ens.\\ MSP ({k})", f3(en.test_AUROC_ens_MSP), "--", f3(en.test_AURC_ens_MSP),
+                 f3(en.off_OOD_AUROC_ens_MSP)])
+    rows.append([f"Ens.\\ MI ({k})", f3(en.test_AUROC_ens_MI), "--", "--", f3(en.off_OOD_AUROC_ens_MI)])
+    tab_sc = (tabular(
+        "Error detection on the internal test split (AUROC, AURC) and detection of unknown lesions on the official "
+        "test set (UNK AUROC) for ResNet-50 E1 (seed 42). All scores use temperature-scaled logits. $\\Delta$: "
+        "paired difference to MSP with 95\\% lesion-cluster bootstrap interval.",
+        "tab:scores", ["Score", "AUROC", "$\\Delta$ vs.\\ MSP [95\\% CI]", "AURC", "UNK"], rows, "lcccc"))
+    write("tab_min_scores", tab_sc)
+    write_body("tab_min_scores_body", tab_sc)
+
+
 def main():
     seed42()
     multiseed()
@@ -1081,6 +1209,7 @@ def main():
     compact()
     r320()
     extras()
+    minimal()
     lines = ["% AUTO-GENERATED by scripts/revision/make_tex_assets.py -- do not edit by hand"]
     for k, v in sorted(macros.items()):
         assert k.isalpha(), k
@@ -1095,7 +1224,10 @@ def main():
         f_extra = ROOT / "paper_revision" / extra
         if f_extra.exists():
             main_tex += f_extra.read_text(encoding="utf-8")
-    latex_builtin = {"Delta", "LaTeX", "Large", "LARGE", "Huge", "Pr", "Rightarrow", "Leftrightarrow"}
+    latex_builtin = {"Delta", "LaTeX", "Large", "LARGE", "Huge", "Pr", "Rightarrow", "Leftrightarrow",
+                     # IEEEtran class and IEEE-template commands
+                     "BibTeX", "IEEEauthorblockA", "IEEEauthorblockN", "IEEEoverridecommandlockouts",
+                     "IEEEtriggeratref", "IEEEpubid", "bstctlcite", "IEEEkeywords"}
     used = set(re.findall(r"\\([A-Z][A-Za-z]+)", main_tex)) - latex_builtin
     missing = sorted(u for u in used if u not in macros)
     fb = ["% AUTO-GENERATED: placeholders for results that are not available yet"]
