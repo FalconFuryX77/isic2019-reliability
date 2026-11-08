@@ -1202,6 +1202,225 @@ def minimal():
     write_body("tab_min_scores_body", tab_sc)
 
 
+# ------------------------------------------------------------------ robustness of the main claims
+def claims():
+    """Supplementary section: does each claim of the main paper (seed 42, 224 px) hold in every other trained model?"""
+    f = MS / "per_run_metrics.csv"
+    if not f.exists():
+        return
+    d = pd.read_csv(f)
+    P = d[d.protocol == "paper"].set_index(["model", "seed"]).sort_index()
+    B = d[d.protocol == "true_best"].set_index(["model", "seed"]).sort_index()
+    r50 = {"resnet50_E0", "resnet50_E1"}
+
+    def runs(df, models):
+        return [r for (mk, _), r in df.iterrows() if mk in models]
+
+    def pairs(df, a_mk, b_mk):
+        return [(r, df.loc[(b_mk, s)]) for (mk, s), r in df.iterrows() if mk == a_mk and (b_mk, s) in df.index]
+
+    groups = ["R224", "R320", "B3", "BEST"]
+    single = {"R224": runs(P, r50), "R320": runs(P, {"resnet50_E0_r320", "resnet50_E1_r320"}),
+              "B3": runs(P, {"effnetb3_E1"}), "BEST": runs(B, r50)}
+    pair = {"R224": pairs(P, "resnet50_E1", "resnet50_E0"), "R320": pairs(P, "resnet50_E1_r320", "resnet50_E0_r320"),
+            "B3": None, "BEST": pairs(B, "resnet50_E1", "resnet50_E0")}
+    arch = {"R224": None, "R320": None, "B3": pairs(P, "effnetb3_E1", "resnet50_E1"), "BEST": None}
+    s1, s0, sb = P.loc[("resnet50_E1", 42)], P.loc[("resnet50_E0", 42)], P.loc[("effnetb3_E1", 42)]
+    f3_ = lambda x: f"{x:.3f}"  # noqa: E731
+    to = "$\\to$"
+
+    def count(items, fn):
+        if items is None:
+            return "--", 0, 0
+        k = sum(bool(fn(*x) if isinstance(x, tuple) else fn(x)) for x in items)
+        return f"{k}/{len(items)}", k, len(items)
+
+    ece_unk = lambda r: max(r.off_OOD_AUROC_MSP, r.off_OOD_AUROC_MC_entropy, r.off_OOD_AUROC_MC_MI)  # noqa: E731
+    spec = [
+        ("Calibration (Sec.~V-B, V-F)", None),
+        ("Every model is over-confident before scaling ($T>1$)", "single", lambda r: r["T"] > 1, "$T=2.91$"),
+        ("Temperature scaling lowers test ECE", "single", lambda r: r.test_ECE_afterT < r.test_ECE_before,
+         f"0.149{to}0.050"),
+        ("Temperature scaling lowers test NLL", "single", lambda r: r.test_NLL_afterT < r.test_NLL_before,
+         f"1.264{to}0.811"),
+        ("The validation $T$ lowers ECE on the official test set", "single",
+         lambda r: r.off_ECE_afterT < r.off_ECE_before, f"{f3_(s1.off_ECE_before)}{to}{f3_(s1.off_ECE_afterT)}"),
+        ("Class weighting, E1 vs.\\ E0 (Sec.~V-A, V-B, VI)", None),
+        ("Raises internal-test balanced accuracy", "pair",
+         lambda a, b: a.test_balanced_accuracy > b.test_balanced_accuracy, f"0.5363{to}0.5653"),
+        ("Raises known-class balanced accuracy on the official test set", "pair",
+         lambda a, b: a.off_bal_acc_known > b.off_bal_acc_known,
+         f"{f3_(s0.off_bal_acc_known)}{to}{f3_(s1.off_bal_acc_known)}"),
+        ("Lowers raw accuracy", "pair", lambda a, b: a.test_accuracy < b.test_accuracy, f"0.7321{to}0.7237"),
+        ("Raises ECE after temperature scaling", "pair", lambda a, b: a.test_ECE_afterT > b.test_ECE_afterT,
+         f"{f3_(s0.test_ECE_afterT)}{to}{f3_(s1.test_ECE_afterT)}"),
+        ("Raises NLL after temperature scaling", "pair", lambda a, b: a.test_NLL_afterT > b.test_NLL_afterT,
+         f"{f3_(s0.test_NLL_afterT)}{to}{f3_(s1.test_NLL_afterT)}"),
+        ("Raises AURC (worse rejection of errors)", "pair", lambda a, b: a.test_AURC_MSP > b.test_AURC_MSP,
+         f"{f3_(s0.test_AURC_MSP)}{to}{f3_(s1.test_AURC_MSP)}"),
+        ("Logit adjustment raises the balanced accuracy of E0", "pair",
+         lambda a, b: b.test_LA_balanced_accuracy > b.test_balanced_accuracy,
+         f"0.5363{to}{f3_(s0.test_LA_balanced_accuracy)}"),
+        ("Logit-adjusted E0 has a lower AURC than E1", "pair", lambda a, b: b.test_LA_AURC_MSP < a.test_AURC_MSP,
+         f"{f3_(s0.test_LA_AURC_MSP)} vs.\\ {f3_(s1.test_AURC_MSP)}"),
+        ("Rankings differ: E1 better in balanced accuracy, E0 better in calibrated NLL and AURC", "pair",
+         lambda a, b: (a.test_balanced_accuracy > b.test_balanced_accuracy) and (a.test_NLL_afterT > b.test_NLL_afterT)
+         and (a.test_AURC_MSP > b.test_AURC_MSP), "yes"),
+        ("Uncertainty (Sec.~V-C)", None),
+        ("MC entropy is not better than calibrated MSP at detecting errors", "single",
+         lambda r: r.test_AUROC_MC_entropy_deterr <= r.test_AUROC_MSP,
+         f"{f3_(s1.test_AUROC_MC_entropy_deterr)} vs.\\ {f3_(s1.test_AUROC_MSP)}"),
+        ("Mutual information is a weak error detector (AUROC $<0.70$)", "single", lambda r: r.test_AUROC_MC_MI < 0.70,
+         f3_(s1.test_AUROC_MC_MI)),
+        ("Selective prediction (Sec.~V-D)", None),
+        ("The locked threshold keeps test coverage within 0.04 of the 0.85 validation target", "single",
+         lambda r: abs(r.test_sel_coverage - 0.85) <= 0.04, "0.883"),
+        ("Accepted images are classified more accurately than all images", "single",
+         lambda r: r.test_sel_acc > r.test_accuracy, "0.769 vs.\\ 0.724"),
+        ("90\\% conformal sets reach at least 0.90 coverage on test", "single",
+         lambda r: r.test_conformal90_coverage >= 0.90, f3_(s1.test_conformal90_coverage)),
+        ("Unknown lesions, official test set (Sec.~V-C, V-F)", None),
+        ("Every score detects them poorly (UNK AUROC $<0.76$)", "single", lambda r: ece_unk(r) < 0.76,
+         f"max.\\ {f3_(ece_unk(s1))}"),
+        ("MC entropy detects them better than MSP", "single",
+         lambda r: r.off_OOD_AUROC_MC_entropy > r.off_OOD_AUROC_MSP,
+         f"{f3_(s1.off_OOD_AUROC_MC_entropy)} vs.\\ {f3_(s1.off_OOD_AUROC_MSP)}"),
+        ("Mutual information detects them better than MSP", "single",
+         lambda r: r.off_OOD_AUROC_MC_MI > r.off_OOD_AUROC_MSP,
+         f"{f3_(s1.off_OOD_AUROC_MC_MI)} vs.\\ {f3_(s1.off_OOD_AUROC_MSP)}"),
+        ("The locked threshold accepts most of them ($>50\\%$)", "single", lambda r: r.off_UNK_accepted > 0.5,
+         "\\SubOffUNKaccPct\\%"),
+        ("Architectures, ResNet-50 E1 vs.\\ EfficientNet-B3 E1 (Sec.~VI)", None),
+        ("ResNet-50 has the higher balanced accuracy and macro-F1", "arch",
+         lambda b3, r: r.test_balanced_accuracy > b3.test_balanced_accuracy and r.test_macro_f1 > b3.test_macro_f1,
+         f"{f3_(s1.test_balanced_accuracy)}/{f3_(s1.test_macro_f1)} vs.\\ "
+         f"{f3_(sb.test_balanced_accuracy)}/{f3_(sb.test_macro_f1)}"),
+        ("EfficientNet-B3 has the lower uncalibrated ECE", "arch", lambda b3, r: b3.test_ECE_before < r.test_ECE_before,
+         f"{f3_(sb.test_ECE_before)} vs.\\ {f3_(s1.test_ECE_before)}"),
+        ("EfficientNet-B3 has the higher ROC-AUC", "arch",
+         lambda b3, r: b3.test_roc_auc_macro_ovr > r.test_roc_auc_macro_ovr,
+         f"{f3_(sb.test_roc_auc_macro_ovr)} vs.\\ {f3_(s1.test_roc_auc_macro_ovr)}"),
+    ]
+    rows, res = [], {}
+    for item in spec:
+        if item[1] is None:
+            rows.append(f"\\multicolumn{{6}}{{l}}{{\\textit{{{item[0]}}}}} \\\\")
+            continue
+        lab, kind, fn, s42 = item
+        src = {"single": single, "pair": pair, "arch": arch}[kind]
+        cells = []
+        for g in groups:
+            txt, k, n = count(src[g], fn)
+            res[(lab, g)] = (k, n)
+            cells.append(txt)
+        rows.append(" & ".join([lab, tminus(s42)] + cells) + " \\\\")
+
+    def tot(lab, gs=groups):
+        k = sum(res[(lab, g)][0] for g in gs)
+        n = sum(res[(lab, g)][1] for g in gs)
+        return k, n
+
+    allp = P.reset_index()
+    n_models = len(allp)
+    b3 = allp[allp.model == "effnetb3_E1"]
+    mc_minus_msp = (b3.test_AUROC_MC_entropy_deterr - b3.test_AUROC_MSP)
+    nb = sum(abs(r["T"] - P.loc[(mk, s), "T"]) > 1e-9 for (mk, s), r in B.iterrows() if mk in r50)
+    nbest = sum(1 for (mk, _) in B.index if mk in r50)
+    # the statements of the text below are checked here, so the build fails if the data stop supporting them
+    every = ["Every model is over-confident before scaling ($T>1$)", "Temperature scaling lowers test ECE",
+             "Temperature scaling lowers test NLL", "The validation $T$ lowers ECE on the official test set",
+             "Mutual information is a weak error detector (AUROC $<0.70$)",
+             "The locked threshold keeps test coverage within 0.04 of the 0.85 validation target",
+             "Accepted images are classified more accurately than all images",
+             "Every score detects them poorly (UNK AUROC $<0.76$)", "MC entropy detects them better than MSP",
+             "The locked threshold accepts most of them ($>50\\%$)",
+             "Raises known-class balanced accuracy on the official test set", "Raises ECE after temperature scaling",
+             "Raises NLL after temperature scaling", "Logit adjustment raises the balanced accuracy of E0",
+             "ResNet-50 has the higher balanced accuracy and macro-F1", "EfficientNet-B3 has the lower uncalibrated ECE"]
+    for lab in every:
+        k, n = tot(lab)
+        assert k == n, (lab, k, n)
+    k_mc, n_mc = tot("MC entropy is not better than calibrated MSP at detecting errors", ["R224", "R320", "BEST"])
+    assert k_mc == n_mc
+    k_bal, n_bal = tot("Raises internal-test balanced accuracy")
+    k_rev, n_rev = tot("Rankings differ: E1 better in balanced accuracy, E0 better in calibrated NLL and AURC")
+    k_aurc, n_aurc = tot("Raises AURC (worse rejection of errors)")
+    k_acc, n_acc = tot("Lowers raw accuracy")
+    k_mi, n_mi = tot("Mutual information detects them better than MSP")
+    k_cf, n_cf = tot("90\\% conformal sets reach at least 0.90 coverage on test")
+    k_auc, n_auc = tot("EfficientNet-B3 has the higher ROC-AUC")
+    la224 = res[("Logit-adjusted E0 has a lower AURC than E1", "R224")]
+    la320 = res[("Logit-adjusted E0 has a lower AURC than E1", "R320")]
+    bal320 = res[("Raises internal-test balanced accuracy", "R320")]
+    assert la224[0] == la224[1] and la320[0] == 0 and bal320[0] < bal320[1]
+    assert P["test_AUROC_MC_MI"].min() == s1.test_AUROC_MC_MI
+    nmc_b3 = int((mc_minus_msp > 0).sum())
+    num = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
+
+    head = ["Claim of the main paper", "Seed 42, 224\\,px", "R50, 224\\,px, 5 seeds", "R50, 320\\,px, 2 seeds",
+            "B3, 224\\,px, 3 seeds", "R50, best epoch, seeds 43--46"]
+    table = "\n".join([
+        "\\begin{table}[H]", "\\centering",
+        "\\caption{Robustness of the claims of the main paper. Second column: value for the analysed models "
+        "(ResNet-50, seed 42, $224\\times224$\\,px). Other columns: number of runs in which the claim holds; for "
+        "single-model claims every E0 and E1 run counts, for class-weighting claims every E1/E0 pair of the same "
+        "seed, and for architecture claims every ResNet-50 E1/EfficientNet-B3 E1 pair of the same seed. Best "
+        f"epoch: the weights of the best validation epoch (Section~\\ref{{sec:s-ckpt}}); they differ from the "
+        f"stored weights in {nb} of these {nbest} runs, and for EfficientNet-B3 and the $320\\times320$\\,px runs "
+        "both rules give the same weights. Temperature, threshold (rule value for 85\\% validation coverage) and "
+        "conformal quantile are fitted on the validation data of each run.}",
+        "\\label{tab:claims}", "\\footnotesize", "\\setlength{\\tabcolsep}{3pt}", "\\renewcommand{\\arraystretch}{1.1}",
+        "\\begin{tabular}{>{\\raggedright\\arraybackslash}p{5.5cm}>{\\centering\\arraybackslash}p{2.7cm}"
+        "*{4}{>{\\centering\\arraybackslash}p{1.62cm}}}",
+        "\\hline", " & ".join(f"\\textbf{{{h}}}" if i == 0 else h for i, h in enumerate(head)) + " \\\\", "\\hline",
+        *rows, "\\hline", "\\end{tabular}", "\\end{table}"])
+
+    allx = allp
+    unk_cols = ["off_OOD_AUROC_MSP", "off_OOD_AUROC_MC_entropy", "off_OOD_AUROC_MC_MI"]
+    txt = (
+        "\\section{Robustness of the Main Claims}\n\\label{sec:s-claims}\n"
+        "The main paper analyses one training run per model (seed 42, $224\\times224$\\,px). "
+        f"Table~\\ref{{tab:claims}} tests each of its claims in all {n_models} models trained with the same pipeline "
+        "(ResNet-50 E0 and E1 with five seeds at $224\\times224$\\,px, the same two models with two seeds at "
+        "$320\\times320$\\,px, Section~\\ref{sec:s-r320}, and EfficientNet-B3 E1 with three seeds) and, for the "
+        "ResNet-50 runs of seeds 43--46, also with the weights of the best validation epoch instead of the stopping "
+        "epoch (Section~\\ref{sec:s-ckpt}). Nothing was refitted or re-selected for this check; every value comes from "
+        "the saved predictions used throughout this document.\n\n" + table + "\n\n"
+        "\\textit{Claims that held in every run.} "
+        f"All {n_models} models were over-confident before scaling ($T$ between {allx['T'].min():.2f} and "
+        f"{allx['T'].max():.2f}), and the validation temperature lowered ECE and NLL on the internal test split and "
+        "ECE on the official test set in every run. Mutual information was always a weak error detector (AUROC "
+        f"{allx.test_AUROC_MC_MI.min():.3f}--{allx.test_AUROC_MC_MI.max():.3f}, at least "
+        f"{(allx.test_AUROC_MSP - allx.test_AUROC_MC_MI).min():.2f} below MSP). The locked threshold gave test "
+        f"coverages between {allx.test_sel_coverage.min():.3f} and {allx.test_sel_coverage.max():.3f} for the "
+        "validation target of 0.85, and accepted images were always classified more accurately than all images. "
+        "Unknown lesions of the official test set were poorly detected by every score in every run (largest UNK "
+        f"AUROC {allx[unk_cols].max().max():.3f}), MC entropy detected them better than MSP in every run, and the "
+        f"locked threshold accepted {100 * allx.off_UNK_accepted.min():.0f}--{100 * allx.off_UNK_accepted.max():.0f}\\% "
+        "of the unknown-class images. In every seed pair, class weighting raised the known-class balanced accuracy "
+        "on the official test set as well as the calibrated ECE and NLL, and logit adjustment raised the balanced "
+        "accuracy of E0. In all three paired seeds, ResNet-50 had the higher balanced accuracy and macro-F1 and "
+        "EfficientNet-B3 the lower uncalibrated ECE.\n\n"
+        "\\textit{Claims that held with exceptions.} MC entropy detected errors less well than the calibrated MSP in "
+        f"every ResNet-50 run; for EfficientNet-B3 it was higher in {num[nmc_b3]} of three seeds, by at most "
+        f"{mc_minus_msp.max():.3f}, so it was never better by a meaningful margin. Class weighting raised the "
+        f"internal-test balanced accuracy in {k_bal} of {n_bal} pairs; the exception is one of the two "
+        "$320\\times320$\\,px pairs (Section~\\ref{sec:s-r320}), so the ranking reversal between balanced accuracy "
+        f"and calibrated NLL and AURC held in {k_rev} of {n_rev} pairs. The AURC cost of weighting held in {k_aurc} "
+        f"of {n_aurc} pairs. Logit adjustment of E0 gave a lower AURC than E1 in all {la224[1]} pairs at "
+        f"$224\\times224$\\,px but in neither pair at $320\\times320$\\,px. Mutual information detected unknown "
+        f"lesions better than MSP in {k_mi} of {n_mi} runs, and the 90\\% conformal sets reached at least 0.90 "
+        f"coverage in {k_cf} of {n_cf} runs (lowest {allx.test_conformal90_coverage.min():.3f}).\n\n"
+        "\\textit{Statements that describe the analysed run only.} Class weighting lowered raw accuracy in "
+        f"{k_acc} of {n_acc} pairs, and over the five seeds at $224\\times224$\\,px the mean change was small and "
+        "not significant (\\MSDiffAcc, $p=\\MSDiffAccP$; Table~\\ref{tab:multiseed}); the accuracy trade-off named "
+        "in the main paper is therefore smaller and less consistent than the reliability cost of weighting, whose "
+        f"calibrated-NLL component held in every pair. EfficientNet-B3 had the higher ROC-AUC in {num[k_auc]} of "
+        f"{num[n_auc]} seeds. The near-chance mutual information of seed 42 ({s1.test_AUROC_MC_MI:.3f}) is the "
+        "lowest of all runs, although mutual information was a weak error detector in every run.\n")
+    (G / "supp_claims.tex").write_text(txt, encoding="utf-8")
+
+
 def main():
     seed42()
     multiseed()
@@ -1215,7 +1434,8 @@ def main():
     r320()
     extras()
     minimal()
-    lines = ["% AUTO-GENERATED by scripts/revision/make_tex_assets.py -- do not edit by hand"]
+    claims()
+    lines =["% AUTO-GENERATED by scripts/revision/make_tex_assets.py -- do not edit by hand"]
     for k, v in sorted(macros.items()):
         assert k.isalpha(), k
         lines.append(f"\\newcommand{{\\{k}}}{{{v}}}")

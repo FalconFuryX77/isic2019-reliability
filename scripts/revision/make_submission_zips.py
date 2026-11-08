@@ -52,7 +52,7 @@ def inline_tables(text):
     def repl(m):
         body = (G / f"{m.group(1)}.tex").read_text(encoding="utf-8").rstrip("\n")
         return body
-    return re.sub(r"\\input\{generated/((?:supp_)?tab_\w+|supp_r320)\}", repl, text)
+    return re.sub(r"\\input\{generated/((?:supp_)?tab_\w+|supp_r320|supp_claims)\}", repl, text)
 
 
 def pruned_bib(bib_text, tex_text):
